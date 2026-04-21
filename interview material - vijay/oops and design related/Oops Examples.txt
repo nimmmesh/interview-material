@@ -1,0 +1,165 @@
+1) vehicle base
+Engine
+
+Car Dervied
+Engine
+
+vehicle obj=new car(); // Method Engine Inside Car will called
+obj.Engine()
+ 
+car obj=new vehicle() // Not allowed 
+obj.Engine()
+
+2) Can one class inherites multiple abstract class?
+   No
+
+3) Can class inherites one abstract class and implements multiple interfaces?
+   Yes
+
+4) Can we declare constant in method or constructor?
+   Yes
+
+5) Can we declare readonly in method or constructor?
+   No
+
+6) Class A
+   Virtual canfly
+   Class B : A
+   Virtual canfly
+   Class C : A
+   B a=new A()
+   
+
+7) What is wrong with the following code snippet?
+   interface IApple 
+   {
+     void GetEaten();
+   } 
+ 
+   class Fruit : IApple 
+   { 
+    public void IApple.GetEaten() 
+    { 
+        ... 
+    } 
+  }
+
+ Answer : It won't compile because the access specifier public is not allowed on an explicit interface declaration.
+
+8) Consider the following class
+   public class Seri 
+   { 
+     public int Member = 5;
+  
+     public int ConstProp1
+             { get => 4; set {} } 
+     public int ConstProp2
+             { get => 8; } 
+   }
+   Which members and properties will be included in the serialization file seri.xml?
+
+   Answer: Only Member and ConstProp1 will be included in the serialization file.
+           Properties that don't have setters are excluded. Properties with setters are included, even if the setter is just a dummy.
+
+9) Which entities can have extension methods?
+   - Classes
+   - interfaces
+   - structs 
+   - enum values
+
+10) What is the problem with the code below?
+    for (int i=0; i < 100; i++) 
+    {
+      // produce a random number 
+      var rnd = new Random(); 
+      int num = rnd.Next(0, 99); 
+ 
+      Debug.WriteLine($"{num}"); 
+    }
+
+  The code will produce the same random number num for many subsequent iterations.
+  The constructor of Random will create a seed value for the number generator based on the current time.
+
+11) Consider below code.	
+    var array = new [] {4, 5, 9};   
+    var subarray = array.Where(i => i > 5);
+    Of what type will the subarray variable be?
+
+Answer: It will be of type WhereArrayIterator<int>.
+        The type doesn't hold any data itself, it fetches them when iterated over via the IEnumerable interface, which it inherits from.
+
+12) Consider the following code.
+    int [] numbers = { 1, 2, 3, 4 }; 
+    int max = 2; 
+    var largeNumbers = numbers.Where(i => i > max); 
+    max = 3; 
+    var list = largeNumbers.ToList();
+ 
+   How many elements are in list at the end of it?
+
+   Answer: One element: 4 
+
+13) Which Linq method can be used to find a single element that matches a certain condition, and once found, stops iterating? 
+ 
+   An example would be: 
+   Find an even number in { 3, 4, 5, 6, 7, 8 }, and stop the iteration after returning 4.
+   
+   Answer: 
+   - First or FirstOrDefault.
+   - First will throw an exception if no match is found, while FirstOrDefault will return the element type's default value.
+
+14) Why is it not possible to declare an operator override in an interface?
+    - An operator override is a static method in C#, and interfaces don't allow static methods - they are implementation details.
+
+15) A class has multiple constructors. Is it possible to call one constructor from within another one?
+    - It is not possible to call a constructor from another constructor's method body.
+    - Constructor calls can be chained like this:
+      public class Person 
+      { 
+       public Person(string name, int age) 
+       {
+         ... 
+       } 
+  
+       public Person(string name) 
+        : this(name, 21) 
+      { 
+  
+         // This constructor will create 
+        // a person object 
+        // who's age is 21        
+  
+      } 
+     }
+
+16) What will be the content of result?
+    char[] array = new [] { 
+     'a', 
+     'b', 
+     'c' 
+    } 
+  
+   var result = array.ToString();
+
+   Answer: "System.Char[]"
+
+17) What will be the result of the following call to the Linq method Except?
+    var input = new [] {1, 2, 2, 3, 4}; 
+    var except = new [] {3, 4};   
+    var result = input.Except(except);
+
+   Answer: 
+   - Result will contain 2 elements: 1 and 2. 
+   - The Except method removes duplicate elements.
+
+18) A class contains a member that is a value type.
+    Will this member be allocated on the stack or the heap when the class is instantiated?
+
+    public class Person 
+    { 
+      private int _age = 3; 
+    }
+
+    Answer: The member will be allocated on the heap, along with the rest of the Person object.
+
+19) Overloading in Depth: https://csharpindepth.com/articles/Overloading

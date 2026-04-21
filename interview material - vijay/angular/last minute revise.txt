@@ -1,0 +1,91 @@
+Perfect 👍 Here’s a **condensed Angular Last-Day Revision Cheatsheet** you can quickly revise before interviews:
+
+---
+
+# ⚡ Angular Last-Day Revision Cheatsheet
+
+### 🔹 What is Angular?
+
+* TypeScript-based framework by Google for building **Single Page Applications (SPAs)**.
+
+### 🔹 Component Lifecycle Order
+
+`ngOnChanges → ngOnInit → ngDoCheck → ngAfterContentInit → ngAfterContentChecked → ngAfterViewInit → ngAfterViewChecked → ngOnDestroy`
+
+### 🔹 Data Binding
+
+* **Interpolation:** `{{ value }}`
+* **Property binding:** `[property]="value"`
+* **Event binding:** `(event)="handler()"`
+* **Two-way binding:** `[(ngModel)]="value"`
+
+### 🔹 Directives
+
+* **Structural:** `*ngIf`, `*ngFor`, `*ngSwitch`
+* **Attribute:** `[ngClass]`, `[ngStyle]`
+
+### 🔹 Modules
+
+* Declared with `@NgModule` → groups components, directives, pipes, services.
+
+### 🔹 Routing
+
+* `RouterModule` defines routes.
+* **Router** → navigation.
+* **ActivatedRoute** → current route info.
+* **Guards** → `CanActivate`, `CanDeactivate`, `Resolve`.
+
+### 🔹 RxJS
+
+* **Observable:** multiple, cancellable values.
+* **Promise:** single value.
+* **Operators:** `map`, `switchMap`, `debounceTime`, `mergeMap`.
+
+### 🔹 Change Detection
+
+* **Default strategy:** checks entire component tree.
+* **OnPush:** checks only when inputs change.
+
+### 🔹 Services & Dependency Injection
+
+* Singleton services with `@Injectable` & DI.
+
+### 🔹 HTTP & Interceptors
+
+* `HttpClient` for API requests.
+* **Interceptors** → attach tokens, handle errors, log.
+
+### 🔹 State Management
+
+* Options: **Service + RxJS**, **NgRx**, **Akita**.
+
+### 🔹 AOT vs JIT
+
+* **AOT:** compile at build time → faster load.
+* **JIT:** compile at runtime → slower.
+
+### 🔹 Testing
+
+* **Unit tests:** Jasmine + Karma.
+* **Components:** `TestBed`.
+* **E2E:** Protractor / Cypress.
+
+### 🔹 Optimization
+
+* Lazy loading
+* `trackBy` in `*ngFor`
+* `OnPush` strategy
+* Unsubscribe from Observables (`takeUntil`, `async` pipe).
+
+### 🔹 Deployment
+
+* `ng build --prod` → optimized bundle.
+* Tree shaking.
+* Differential loading.
+* Service Workers for PWA.
+
+---
+
+⚡ With this **2-page cheat sheet**, you’ll have **90% of common Angular interview questions covered**.
+
+Do you also want me to make a **Q\&A style flashcards version** (question on one side, answer on the other) so you can practice quickly?

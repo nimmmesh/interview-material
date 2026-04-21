@@ -1,0 +1,32 @@
+Angular
+1) JIT in angular command
+2) AOT angular command
+3) How to pass current date as a inpute to pipe?
+4) web worker in angular
+5) service worker
+6) State Management in angular
+7) ngRX
+
+.Net core:
+1) Generic Host
+2) Kestrel server
+3) Automapper in .net core
+4) Dapper?
+5) RequestDelegate
+6) metapackages
+7) Core SX
+8) Enable session .net core
+
+SQL Server?
+1) Left Outer Join
+2) Full Outer Join
+3) Full Join
+4) Query to get uncommon data from both tables
+   SELECT * FROM table1
+   LEFT JOIN table2 ON table1.column_name = table2.column_name
+   WHERE table2.column_name IS NULL
+   UNION
+   SELECT * FROM table2
+   LEFT JOIN table1 ON table2.column_name = table1.column_name
+   WHERE table1.column_name IS NULL;
+5) Cursor

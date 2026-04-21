@@ -1,0 +1,76 @@
+1) jquery to search specific element in html that begins with
+  $( "input[name^='news']" )
+
+2) jquery to search specific word in html that begins with inp...
+   $( "div:contains('John')" )
+
+3) HTML attributes
+   An attribute defines a property for an element, consists of an attribute/value pair, and appears within the element's start tag. 
+
+4) Jquery Chaining?
+   - With jQuery, you can chain together actions/methods.
+   - Chaining allows us to run multiple jQuery methods (on the same element) within a single statement.
+
+5)  Which command will give a version of jQuery?
+    $.ui.version
+
+6) What is the difference between find and children methods?
+   - Find method is used to find all levels down the DOM tree but children find single level down the DOM tree.
+
+7) What is the difference between size and length of jQuery?
+   - Size and length both returns the number of element in an object. 
+   - But length is faster than the size because length is a property and size is a method.
+
+8) What is the use of jQuery load method?
+   - jQuery load method is a powerful AJAX method which is used to load the data from a server and 
+     assign the data into the element without loading the page.
+
+9) What is the difference between parent() and parents() methods in jQuery?
+   - The basic difference is the parent() function travels only one level in the DOM tree, 
+   - where parents() function search through the whole DOM tree.
+
+10) What is the difference between eq() and get() methods in jQuery?
+    - eq() returns the element as a jQuery object. That means that you can use jQuery functions on it.
+    - get() return a DOM element.  So jQuery functions can't be used.
+
+11) What is the difference between $('div') and $('<div/>') in jQuery?
+   - $('<div/>') : This creates a new div element. However this is not added to DOM tree unless you don't append it to any DOM element.
+   - $('div') : This selects all the div element present on the page.
+
+12) What is the difference between .empty(), .remove() and .detach() methods in jQuery?
+    - All these methods .empty(), .remove() and .detach() are used for removing elements from DOM but they all are different.
+    - .empty(): This method removes all the child element of the matched element. But it does not remove associated events.
+    - .remove(): Use .remove() when you want to remove the element itself, as well as everything inside it. all bound events and jQuery data 
+      associated with the elements are removed.
+    - .detach(): This method is the same as .remove(), except that .detach() keeps all jQuery data associated with the removed elements
+    - This method is useful when removed elements are to be reinserted into the DOM at a later time.
+
+13) $.ajax() vs $.post()
+    - ajax having more control in terms of configuraion.
+    - $.post() only supports a success callback, where $.ajax() supports beforeSend, success, error and complete callbacks. 
+
+14) How to check data type of any variable in jQuery?
+    -  Using $.type(Object) which returns the built-in JavaScript type for the object.
+
+15) How do you attach a event to element which should be executed only once?
+    - Using jQuery one() method.
+    
+16) Is it possible to hold or delay document.ready execution for sometime?
+    - $.holdReady(true)
+
+17) Is there any advantage of using $.ajax() for ajax call against $.get() or $.post()?
+    - By using jQuery post()/ jQuery get(), you always trust the response from the server and 
+      you believe it is going to be successful all the time. 
+    - Well, it is certainly not a good idea to trust the response. As there can be n number of reason which may lead to failure of response.
+    - $.ajax() provides success callbacks, error callbacks, beforesending methods.
+
+18) What are source maps in jQuery?
+    - mapping of minified version of jQuery against the un-minified version
+
+19) Can we use protocol less URL while referencing jQuery from CDNs?
+    - Yes. Below code is completely valid.
+    - <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+20) What is the advantage of using protocol less URL while referencing jQuery from CDNs?
+    - "protocol-less" URL is the best way to reference third party content that’s available via both HTTP and HTTPS. 
+   

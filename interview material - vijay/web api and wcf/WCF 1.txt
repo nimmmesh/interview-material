@@ -1,0 +1,171 @@
+1. What is the Difference between WCF and ASMX Web Services?
+   A simple and basic difference is that ASMX or ASP.NET web service is designed to send and receive messages using SOAP over HTTP only.
+   While WCF can exchange messages using any format (SOAP is default) over any transport protocol (HTTP, TCP/IP, MSMQ, NamedPipes, etc).
+
+2. What are WCF Service Endpoints? Explain.
+   For Windows Communication Foundation services to be consumed, it’s necessary that it must be exposed; 
+   Clients need information about service to communicate with it. This is where service endpoints play their role.
+   
+   A WCF service endpoint has three basic elements, i.e. Address, Binding and Contract.
+    Address: It defines "WHERE". Address is the URL that identifies the location of the service.
+    Binding: It defines "HOW". Binding defines how the service can be accessed.
+    Contract: It defines "WHAT". Contract identifies what is exposed by the service.
+
+3. What are the Possible Ways of Hosting a WCF Service? Explain.
+   Hosting in a Managed Application/ Self Hosting
+    Console Application
+    Windows Application
+    Windows Service
+   Hosting on Web Server
+    IIS 6.0 (ASP.NET Application supports only HTTP)
+    Windows Process Activation Service (WAS) i.e. IIS 7.0 supports HTTP, TCP, NamedPipes, MSMQ.
+
+4. How Can We Achieve Operation Overloading While Exposing WCF Services?
+   By default, WSDL doesn’t support operation overloading. 
+   Overloading behaviour can be achieved by using "Name" property of OperationContract attribute.
+
+5. What Message Exchange Patterns (MEPs) are Supported by WCF? Explain Each of Them Briefly.
+   1) Request/Response: 
+      In this pattern, a response message will always be generated to consumer when the operation is called, even with the void return type.
+   2) One Way 
+      In some cases, we are interested to send a message to service in order to execute certain business functionality 
+      but not interested in receiving anything back. 
+      OneWay MEP will work in such scenarios. If we want queued message delivery, 
+   3) Duplex
+      The Duplex MEP is basically a two-way message channel. 
+      In some cases, we want to send a message to service to initiate some longer-running processing 
+      and require a notification back from service in order to confirm that the requested process has been completed.
+
+6. What is DataContractSerializer and How is it Different from XmlSerializer?
+   Serialization is the process of converting an object instance to a portable and transferable format. 
+   So, whenever we are talking about web services, serialization is very important.
+   
+7. Which Standard Binding could be used for a Service that was Designed to Replace an Existing ASMX Web Service?
+   The basicHttpBinding standard binding is designed to expose a service as if it is an ASMX/ASP.NET web service. 
+   This will enable us to support existing clients as applications are upgrade to WCF.
+
+8. Please Explain Briefly Different Instance Modes in WCF?
+   Per Call: Instance created for each call, most efficient in term of memory but need to maintain session.
+   Per Session: Instance created for a complete session of a user. Session is maintained.
+   Single: Only one instance created for all clients/users and shared among all. Least efficient in terms of memory. 
+
+9. Please Explain Different Modes of Security in WCF? Or Explain the Difference between Transport and Message Level Security
+   When we talk about WCF security, there are two aspects. The first is the data and the second is the medium on which the data travels, i.e., the protocol.
+   WCF has the ability to apply security at the transport level (i.e., protocol level) and also at message level (i.e., data).
+
+   Transport Level security: 
+   - Transport level security happens at the channel level. Transport level security is the easiest to implement as it happens at the communication level. 
+   WCF uses transport protocols like TCP, HTTP, MSMQ, etc., and each of these protocols have their own security mechanisms. One of the common implementations of transport level security is HTTPS.
+   HTTPS is implemented over HTTP protocols with SSL providing the security mechanism. No coding change is required, 
+   it’s more about using the existing security mechanism provided by the protocol.
+   - Steps:
+     1) Add Security mode tag in bindings and set security mode "Transport"
+       <bindings>
+    	<wsHttpBinding>
+          <binding name="TransportSecurity">
+            <security mode="Transport">
+                <transport clientCredentialType="None"/>
+            </security>
+          </binding>
+       </wsHttpBinding>
+      </bindings>
+    2) Tie up the binding to endpoint and specify HTTPS configuration
+      - We need to now tie up the bindings with the end points.So use the bindingConfiguration tag to specify the binding name. 
+      - We also need to specify the address where the service is hosted. Please note the HTTS in the address tag.
+      - Change mexHttpBinding to mexHttpsBinding in the second end point.
+      - In serviceMetadata, we also need to change httpGetEnabled to httpsGetEnabled.
+    3) Make the web application HTTPS enabled
+
+
+   Message Level Security 
+   we actually secure the message. We encrypt the message before transporting it.
+  
+10. What are Contracts in WCF? 
+    - The main use of contracts is to allow the client and services agree as to the types of operations and structures 
+      they will use during the communication process.
+    - It also shows the formal agreements between client and service to define a platform-neutral and standard for describing that what the service does.
+    
+    Service Contract:
+    - A service contract defines the operations which are exposed by the service to the outside world.
+    - A service contract is the interface of the WCF service and it tells the outside world what the service can do.
+   
+    Operation Contract:
+    - An Operation Contract defines the method exposed to the client to exchange the information between the client and server. 
+    - An Operation Contract describes what functionality is to be given to the client
+
+    Data Contract:
+    - Data Contract is an agreement between parties (i.e., a service and a client) that describes what type of data will be exchanged between them
+    - It describes the external format of data passed to and from service operations
+    - It defines the structure and types of data exchanged in service messages
+    - define a Data contract using [DataContract] and [DataMember] attribute.
+    - controlling the contents of the SOAP message body only not message header or entire message format.
+   
+   Message Contract:
+    - https://www.codeproject.com/Articles/733660/DataContract-Vs-MessageContract-in-WCF
+    - Message Contract describes the structure of SOAP message that is passed between parties (i.e., a service and a client). 
+    - Message Contract provides complete control over structure of SOAP message.
+    - controlling the contents of the SOAP message body as well as message header or entire message format.
+
+  Fault Contract:
+    - 
+
+11) Message Security Vs Transport Security
+    Message-
+    - Secure if the message is forwarded via intermediate routers
+    - Provides end to end security
+    - No Dependency with any protocol
+    - Performance will be slow since every single message is encrypted
+
+   Transport:
+   - Best way, If there is no intermediate routers between
+   - Security provides only for the channel, once the message is out of the transport medium message is unsecure
+   - Security inherent from the protocol, so no extra coding
+   - Good in Performance
+
+12) Service Contract
+   - A service contract defines the operations which are exposed by the service to the outside world. 
+   - A service contract is the interface of the WCF service and it tells the outside world what the service can do. 
+
+13) Operation Contract
+   - An operation contract is defined within a service contract.
+   - It defines the parameters and return type of an operation.
+
+14) Data Contract
+   - A data contract defines the data type of the information that will be exchange be-tween the client and the service. 
+   - A data contract can be used by an operation contract as a parameter or return type, or it can be used by a message contract to define elements.
+
+15) Message Contract
+   - When an operation contract required to pass a message as a parameter or return value as a message, the type of this message will be defined as message contract.
+   - A message contract defines the elements of the message (like as Message Header, Message Body), as well as the message-related settings, such as the level of message security.
+   - Message contracts give you complete control over the content of the SOAP header, as well as the structure of the SOAP body.
+
+16) Fault Contract
+    - A fault contract defines errors raised by the service, and how the service handles and propagates errors to its clients. 
+
+17) IIS Hosting: 
+    - Main advantage of hosting a service in IIS is Host process is launched automatically upon the first client request.
+    - Disadvantage is that only HTTP protocol could be used.
+    - Another disadvantage is all the service will run on the same port.
+    - Here Host Process life cycle is managed by the IIS.
+
+18) Self Hosting: 
+    - Self hosting is the name of the technique used when the developer is responsible for providing and managing the life cycle of the host service.
+    - This requires adding a managed code to host the process.
+    - The code could be either a Windows form application or Console application.
+    - Here host process must be running before client makes a call to the service.
+    - The ServiceHost then remains open and available until it is no longer needed.
+
+19) Throtling: 
+    - WCF throttling provides some properties that you can use to limit how many instances or sessions are created at the application level. 
+    - Performance of the WCF service can be improved by creating proper instance.
+    - Throtling achieve by below configuration in Config FIle: 
+      <behavior name="throttlingBehavior">  
+       <serviceThrottling  
+        maxConcurrentCalls="2"  
+        maxConcurrentInstances="2"  
+        maxConcurrentSessions="2"/>  
+      </behavior>  
+
+20) 
+   
+   

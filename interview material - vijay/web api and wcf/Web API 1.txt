@@ -1,0 +1,266 @@
+1) What is Web API?
+  - ASP.NET Web API is a framework that simplifies building HTTP services for broader range of clients (including browsers as well as mobile devices) 
+    on top of .NET Framework.
+  - Using ASP.NET Web API, we can create non-SOAP based services like plain XML or JSON strings, etc. 
+  - Create resource-oriented services using the full features of HTTP
+  - Exposing services to a variety of clients easily like browsers or mobile devices, etc.
+
+2) What are the Advantages of Using ASP.NET Web API?
+   - It works the HTTP way using standard HTTP verbs like GET, POST, PUT, DELETE, etc. for all CRUD operations
+   - Complete support for routing
+   - Response generated in JSON or XML format using MediaTypeFormatter
+   - It has the ability to be hosted in IIS as well as self-host outside of IIS
+   - Supports Model binding and Validation
+
+3) What New Features are Introduced in ASP.NET Web API 2.0?
+   - Attribute Routing
+   - CORS (Cross-Origin Resource Sharing)
+   - HttpActionResult
+   - External Authentication
+   - OWIN (Open Web Interface for .NET) Self Hosting
+
+4) MVC Vs ASP.NET Web API?
+   - Web API
+     - the purpose of Web API framework is to generate HTTP services that reach more clients by generating data in raw format, for example, plain XML or JSON string. So, 
+       ASP.NET Web API creates simple HTTP services that renders raw data.
+   - MVC
+     - On the other hand, ASP.NET MVC framework is used to develop web applications that generates Views as well as data. 
+      ASP.NET MVC facilitates in rendering HTML easy.
+
+5) How to Return View from ASP.NET Web API Method?
+   - No, we can't return view from ASP.NET Web API method.
+   - ASP.NET MVC and Web API that ASP.NET Web API creates HTTP services that renders raw data. Although, it's quite possible in ASP.NET MVC application.
+
+6) How to Restrict Access to Web API Method to Specific HTTP Verb?
+   - Apply atrribute with particular verb like [HttpPost], [HttpPost]
+
+7) How Can We Provide an Alias Name for ASP.NET Web API Action?
+   - We can provide an alias name for ASP.NET Web API action same as in case of ASP.NET MVC by using "ActionName"
+
+8) Explain briefly CORS(Cross-Origin Resource Sharing)?
+   - CORS (Cross-origin resource sharing) is a technique that allows restricted resources on a web page to be requested from another domain outside 
+     the domain of which the first resource was served.
+
+9) What is ASP.NET Web API OData?
+   - The Open Data Protocol (OData) is a data access protocol created for the web. 
+   - OData gives a consistent procedure to query and manipulates data sets via CRUD operations (Create, Retrieve, Update, and Delete). 
+   - ASP.NET web API supports each of the v3 and v4 protocol.
+
+10) Web API vs WCF?
+    - WCF
+     - Heavyweight Because complicated WSDL Structure
+     - Independent of protocols means it supports multiple protocols like http,tcp,namedpipes,MSMQ
+     - To parse SOAP based messages required lot of coding
+    
+    - WEB API
+      - Lightweight because it support json and xml data
+      - Supports only http protocols
+      - Parsing of json and xml data is very easy for client
+
+11) Exception Handling?
+    - HttpResponseException => throw new HttpResponseException(HttpStatusCode.NotFound);   
+    - Exception Filter => Creating custom error filter by inheriting ExceptionFilterAttribute
+    - Exception Handlers => Global Level
+    - HttpError => By using return request.createErrorResponse
+
+12) FromURI vs FromBody
+    - If the parametere is simple type webapi tries to get the value from URL. Simple types includes int,bool,string,decimal,datetime
+    - If the parameter is complex type web api tries to read it from request body.
+
+13) Content Negotiation : 
+    - the process of selecting the best representation for a given response when there are multiple representations available.
+    - The primary mechanism for content negotiation in HTTP are these request headers:
+    - There are two main headers which hold the responsibility of content negotiation
+    - Content-Type & ACCEPT
+    - When a requester send a service request, the CONTENT-TYPE tells responder the format he will receive data whereas the ACCEPT header tells 
+      in which format the requester requires the data.
+    - Accept : Which media types are acceptable for the response, such as "application/json," "application/xml," or a custom media type such as "application/vnd.example+xml"
+    - Accept-Charset: Which character sets are acceptable, such as UTF-8 or ISO 8859-1.
+    - Accept-Encoding: Which content encodings are acceptable, such as gzip.
+    - Accept-Language: The preferred natural language, such as "en-us".
+    - For Browser requests of text/html: 
+      config.Formatters.JsonFormatter.SupportedMediaTypes.Add(new
+      System.Net.Http.Headers.MediaTypeHeaderValue("text/html"));
+    - To remove xml formatter
+      config.Formatters.XmlFormatter.SupportedMediaTypes.Clear();
+    - To format json result in good manner: like camel casing : use contract resolver
+      config.Formatters.JsonFormatter.SerializerSettings.Formatting = Newtonsoft.Json.Formatting.Indented;
+      config.Formatters.JsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+    -  In case both accept headers and content type are present, the precedence is given to accept headers.
+
+
+14) Custom CSV MediaTypeFormatter? 
+    - Create class which extends MediaTypeFormatter class and override methods in MediaTypeFormatter class.
+    - After creating CsvMediaTypeFormatter class, add the following code in Global.asax.cs file.
+      GlobalConfiguration.Configuration.Formatters.Add(new CsvMediaTypeFormatter(new QueryStringMapping("format", "csv", "text/csv")));
+
+15) Web API uses which of the following open-source library for JSON serialization?
+    Web API uses Json.NET library for JSON serialization.
+
+16)  By default, Web API sends HTTP response with which of the following status code for all uncaught exception?
+     - 500   Internal Server Error
+
+17) What is the biggest disadvantage of  Other Return Types  in Web API?
+    - The biggest disadvantage of this approach is that you cannot directly return an error code like 404 error
+
+18) How do you construct HtmlResponseMessage?
+    HttpResponseMessage response = Request.CreateResponse(HttpStatusCode.OK, "value");
+    response.Content = new StringContent("Testing", Encoding.Unicode);
+    response.Headers.CacheControl = new CacheControlHeaderValue()
+
+19) How Can assign alias name for ASP.NET Web API Action?
+    - We can give alias name for Web API action same as in case of ASP.NET MVC by using  ActionName  attribute
+    - [ActionName("SaveStudentInfo")]
+
+20) How to register exception filter globally?
+    - It is possible to register exception filter globally using following code-
+      GlobalConfiguration.Configuration.Filters.Add(new MyTestCustomerStore.NotImplExceptionFilterAttribute());
+
+21) Give me one example of Web API Routing?
+    
+	Config.Routes.MapHttpRoute( 
+	name: "MyRoute,"//route name 
+	routeTemplate: "api/{controller}/{action}/{id}",//as you can see "API" is at the beginning. 
+	defaults: new { id = RouteParameter.Optional } 
+	); 
+
+22) How can you handle errors in Web API?
+    - Several classes are available in Web API to handle errors. 
+    - They are HttpError, Exception Filters, HttpResponseException, and Registering Exception Filters.
+
+23) Why is Web API required? Is it possible to use RESTful services using WCF?
+    - Yes, we can still develop RESTful services with WCF. However, there are two main reasons that prompt users to use Web API instead of RESTful services.
+    - Web API increases TDD (Test Data Driven) approach in the development of RESTful services.
+    - If we want to develop RESTful services in WCF, you surely need a lot of config settings, URI templates, 
+      contracts & endpoints for developing RESTful services using web API.
+
+24) What are main return types supported in Web API?
+    - Void   It will return empty content
+    - HttpResponseMessage   It will convert the response to an HTTP message.
+    - IHttpActionResult   internally calls ExecuteAsync to create an HttpResponseMessage
+    - Other types   You can write the serialized return value into the response body
+
+25) How to unit test Web API?
+    - Fiddler
+    - Postman
+
+26) Which of the following .NET framework supports Web API?
+    - Web API is supported by NET 4.0 version
+
+27) How can we make sure that Web API returns JSON data only?
+    - To make Web API serialize the returning object to JSON format and returns JSON data only. 
+    - For that you should add the following code in WebApiConfig.cs class in any MVC Web API Project:
+      Config.Formatters.JsonFormatter.SupportedMediaTypes.Add(new MediaTypeHeaderValue("application/json"));
+
+28) Where is bearer token stored in Web api?
+   - They're not stored server side 
+   - they're issued to the client and the client presents them on each call. 
+   - They're verified because they're signed by the owin host's protection key. 
+   - In SystemWeb hosting, that protection key is the machineKey setting from web.config.
+   - That's unnecessary, as long as the protection key the owin host uses doesn't change across server restarts.
+   - A client can hold onto a token for as long as the token is valid.
+
+29) Web API Hosting Types: 
+    - IIS : 
+      Web API can be hosted under IIS, in the same way as a web application.
+    - Self Hosting : 
+       - You can host a Web API as separate process than ASP.NET. 
+       - It means you can host a Web API in console application or windows service or OWIN or any other process that is managed by .NET framework.
+       - You need to do following steps in order to self-host a web API.
+	 1) Use HttpConfiguration to configure a Web API
+         2) Create HttpServer and start listening to incoming http requests
+
+
+30) API Vesrioning? 
+    - Once a Web API service is made public, different client applications start using our Web API services. 
+    - As the business grows and requirements change, we may have to change the services as well, 
+      but the changes to the services should be done in way that does not break any existing client applications.
+    - This is when Web API versioning helps. We keep the existing services as is, so we are not breaking the existing client applications, 
+      and develop a new version of the service that new client applications can start using.
+    - One of the option to implement versioning is by using URI.
+    - Example:
+
+      [Route("api/v1/students")]
+      public IEnumerable<StudentV1> Get(){
+         return students;
+      }
+
+31) RoutePrefix?
+    - It comes unde attribute based routing.
+    - It applies at controller level.
+    - you can set the common prefix for the entire controller by using the [RoutePrefix] attribute 
+      [RoutePrefix("students")]
+      public class StudentsController : ApiController
+      {
+      }
+ 
+32) CORS?
+    - it is a mechanism that allows restricted resources on a web page to be requested from another domain, 
+      outside the domain from which the resource originated.
+    - Enable CORS in Web API
+      1) Install-Package Microsoft.AspNet.WebApi.Cors
+      2) Open the file App_Start/WebApiConfig.cs. Add the following code to the WebApiConfig.Register method:
+ 	 - config.EnableCors();
+      3) To enable CORS for all Web API controllers in your application, pass an EnableCorsAttribute instance to the EnableCors method:
+         
+	 public static class WebApiConfig
+	 {
+    		public static void Register(HttpConfiguration config)
+    		{
+        	   var cors = new EnableCorsAttribute("www.example.com", "*", "*");
+        	 config.EnableCors(cors);        
+    		}
+	 }
+      4) Or you can enable at controller level also.
+         
+	 [EnableCors(origins: "http://www.example.com", headers: "*", methods: "get,post")]
+	 public class TestController : ApiController
+	 {
+    	
+	 }
+
+33) What is JSONP?
+    - JSONP stands for JSON with Padding. 
+    - It helps to implement cross-domain request by browser's same-origin-policy. 
+    - It wraps up a JSON response into a JavaScript function (callback function) and sends that back as a Script to the browser. 
+    - This allows you to bypass the same origin policy and load JSON from an external server into the JavaScript on your webpage. 
+
+34) Accept header?
+    - if a client wants response data in JSON format then it will send following GET HTTP request with Accept header to the Web API.
+      
+      GET http://localhost:60464/api/student HTTP/1.1
+      User-Agent: Fiddler
+      Host: localhost:1234
+      Accept: application/json
+
+35) Content-Type?
+    - if a client includes JSON data in the request body to send it to the receiver 
+      then it will send following POST HTTP request with Content-Type header with JSON data in the body.
+      
+      POST http://localhost:60464/api/student?age=15 HTTP/1.1
+      User-Agent: Fiddler
+      Host: localhost:60464
+      Content-Type: application/json
+      Content-Length: 13
+
+
+36) What is REST?
+    - REST is a client-service architecture that is based on a request/response design. 
+    - Developers use RESTful APIs to perform requests and receive responses through HTTP functions.
+    
+37) REST Best Practice?
+    - REST API MUST ACCEPT AND RESPOND WITH JSON
+    - GO WITH ERROR STATUS CODES
+    - DON T USE VERBS IN URLS
+    - USE PLURAL NOUNS TO NAME A COLLECTION
+      GET /car/123
+      POST /car
+      GET /car
+    - WELL COMPILED DOCUMENTATION
+    - RETURN ERROR DETAILS IN THE RESPONSE BODY
+    - USE SSL/TLS
+    - SECURE YOUR API
+
+38) How to prevent token stealing?
+   
+

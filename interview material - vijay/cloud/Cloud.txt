@@ -1,0 +1,13 @@
+1) Cloud Layers?
+   - IAAS :
+    - provides cloud infrastructure in terms of hardware like memory, processor speed etc. 
+    - For example: microsoft azure
+	  - It provides hardware resources for the cloud infrastructure like storage, processor,memory etc.
+   
+   - PAAS : 
+      - provides cloud application platform for the developers. 
+	  - 
+   
+   - SAAS : 
+     - provides cloud applications which are used by the user directly without installing anything on the system. 
+	 - 
