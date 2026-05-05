@@ -79,14 +79,125 @@ ngAfterContentChecked → ngAfterViewInit → ngAfterViewChecked → ngOnDestroy
 - `concatMap` — subscribe to inner observables sequentially
 - `exhaustMap` — ignore new emissions until current inner completes
 - `debounceTime` — delay emissions, discard if new value arrives (search input)
+- `distinctUntilChanged` — emit only when value differs from previous
 - `pipe` — compose operators into a chain
 
 ```typescript
 source.pipe(
   debounceTime(300),
+  distinctUntilChanged(),
   switchMap(query => this.http.get(`/api/search?q=${query}`)),
   catchError(error => of([]))
 ).subscribe(results => this.results = results);
+```
+
+### `debounceTime()` — Deep Dive
+
+Waits for a pause in emissions. If a new value arrives before the delay expires, the timer resets and the previous value is discarded.
+
+```typescript
+// Only emit after 300ms of silence
+searchControl.valueChanges.pipe(
+  debounceTime(300)
+).subscribe(value => console.log(value));
+```
+
+```
+User types:  H    e    l    l    o
+Time (ms):   0    80   160  240  320
+             ×    ×    ×    ×    ← timer starts (300ms)
+                                     620ms → emits "Hello"
+```
+
+**Common use cases:** Search-as-you-type, form validation on stop typing, window resize handlers.
+
+### `debounceTime()` vs `debounce()`
+
+| | `debounceTime(ms)` | `debounce(durationSelector)` |
+|-|-------------------|------------------------------|
+| **Delay** | Fixed (e.g., `300ms`) | Dynamic — returns an Observable that controls delay per emission |
+| **Use case** | Same delay every time | Variable delay based on the emitted value |
+| **Simplicity** | Simpler, most common | More flexible, less common |
+
+```typescript
+// debounceTime — fixed 300ms delay, same every time
+input$.pipe(
+  debounceTime(300)
+);
+
+// debounce — dynamic delay based on value
+// Short queries get more time (user probably still typing),
+// long queries fire faster (likely done typing)
+input$.pipe(
+  debounce(value => {
+    const delay = value.length < 3 ? 500 : 200;
+    return timer(delay);
+  })
+);
+```
+
+**Another example — debounce based on priority:**
+```typescript
+notifications$.pipe(
+  debounce(notification => {
+    // High priority: emit immediately (0ms)
+    // Low priority: wait 2 seconds (batch them)
+    return notification.priority === 'high' ? timer(0) : timer(2000);
+  })
+);
+```
+
+**Rule of thumb:** Use `debounceTime()` by default. Use `debounce()` only when you need different delays for different values.
+
+### `distinctUntilChanged()` — Deep Dive
+
+Suppresses consecutive duplicate emissions. Only emits when the current value differs from the previous one.
+
+```typescript
+// Without distinctUntilChanged — emits duplicates
+of(1, 1, 2, 2, 3, 1).subscribe(console.log);
+// Output: 1, 1, 2, 2, 3, 1
+
+// With distinctUntilChanged — skips consecutive duplicates
+of(1, 1, 2, 2, 3, 1).pipe(
+  distinctUntilChanged()
+).subscribe(console.log);
+// Output: 1, 2, 3, 1  (note: last 1 emits because it's not consecutive)
+```
+
+**With objects — custom comparator:**
+```typescript
+// Default comparison uses === (reference equality)
+// For objects, provide a comparator function
+users$.pipe(
+  distinctUntilChanged((prev, curr) => prev.id === curr.id)
+).subscribe(user => console.log('User changed:', user));
+```
+
+**Using `distinctUntilKeyChanged` (shorthand for objects):**
+```typescript
+// Same as above but cleaner
+users$.pipe(
+  distinctUntilKeyChanged('id')
+).subscribe(user => console.log('User changed:', user));
+```
+
+**Real-world pattern — search input (all three together):**
+```typescript
+this.searchControl.valueChanges.pipe(
+  debounceTime(300),              // Wait for user to stop typing
+  distinctUntilChanged(),          // Skip if same query as before
+  filter(query => query.length >= 2), // Ignore very short queries
+  switchMap(query => this.searchService.search(query))
+).subscribe(results => this.results = results);
+```
+
+```
+User types:       "a"     "ab"    "ab"    "abc"
+debounceTime:      ×       ×      emit    emit    (waits 300ms)
+distinctUntilChanged:       ✓      ×       ✓      (skips duplicate "ab")
+filter:                     ✓              ✓      (skips "a" — too short)
+switchMap:                  →API           →API   (cancels previous if pending)
 ```
 
 ### Change Detection
