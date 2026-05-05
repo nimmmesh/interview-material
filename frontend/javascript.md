@@ -174,6 +174,89 @@ async function fetchAll() {
 4. **Explicit:** `call`/`apply`/`bind` → `this` = specified object
 5. **Arrow function:** Inherits `this` from enclosing scope (lexical)
 
+### Debounce vs Throttle
+
+Both limit how often a function executes, but they work differently:
+
+| | Debounce | Throttle |
+|-|----------|----------|
+| **Behavior** | Waits until user *stops* triggering, then executes once | Executes at most once per interval, even if triggered repeatedly |
+| **Analogy** | Elevator door — resets wait timer every time someone enters | Gatekeeping — allows one person through every N seconds |
+| **Use case** | Search input, window resize, form validation | Scroll events, button clicks, API polling |
+
+**Debounce — Implementation:**
+```javascript
+function debounce(fn, delay) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);                   // Reset timer on every call
+    timer = setTimeout(() => {
+      fn.apply(this, args);                // Execute after delay with no new calls
+    }, delay);
+  };
+}
+
+// Usage: API search — only fires 300ms after user stops typing
+const searchInput = document.getElementById('search');
+searchInput.addEventListener('input', debounce((e) => {
+  fetch(`/api/search?q=${e.target.value}`)
+    .then(res => res.json())
+    .then(data => renderResults(data));
+}, 300));
+```
+
+**How it works step-by-step:**
+```
+User types: H  e  l  l  o
+Time:       0  50 100 150 200
+                              ← 300ms of silence
+                              ← NOW the function fires (once, with "Hello")
+```
+
+**Throttle — Implementation:**
+```javascript
+function throttle(fn, limit) {
+  let inThrottle = false;
+  return function (...args) {
+    if (!inThrottle) {
+      fn.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
+// Usage: Scroll handler — fires at most once every 200ms
+window.addEventListener('scroll', throttle(() => {
+  console.log('Scroll position:', window.scrollY);
+}, 200));
+```
+
+**In Angular (RxJS debounce):**
+```typescript
+this.searchControl.valueChanges.pipe(
+  debounceTime(300),           // Built-in RxJS operator
+  distinctUntilChanged(),       // Skip if same value
+  switchMap(query => this.http.get(`/api/search?q=${query}`))
+).subscribe(results => this.results = results);
+```
+
+**In React (custom hook):**
+```typescript
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
+// Usage
+const debouncedSearch = useDebounce(searchTerm, 300);
+useEffect(() => { fetchResults(debouncedSearch); }, [debouncedSearch]);
+```
+
 ---
 
 ## Tradeoffs & Pitfalls
