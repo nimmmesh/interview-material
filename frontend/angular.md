@@ -133,12 +133,76 @@ this.myForm = this.fb.group({
 
 ### Lazy Loading
 
-**Static:** Use `loadChildren` in route config:
-```typescript
-{ path: 'admin', loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule) }
+Lazy loading defers loading of feature modules until the user navigates to them, reducing the initial bundle size.
+
+**Step-by-step configuration:**
+
+**1. Create a feature module with routing:**
+```bash
+ng generate module admin --route admin --module app.module
 ```
 
-**Dynamic:** Fetch routes from API based on user roles, then push to `router.config`:
+**2. Configure lazy route in `app-routing.module.ts`:**
+```typescript
+const routes: Routes = [
+  { path: '', component: HomeComponent },
+  {
+    path: 'admin',
+    loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule)
+  },
+  {
+    path: 'reports',
+    loadChildren: () => import('./reports/reports.module').then(m => m.ReportsModule)
+  }
+];
+```
+
+**3. Feature module has its own routing:**
+```typescript
+// admin-routing.module.ts
+const routes: Routes = [
+  { path: '', component: AdminDashboardComponent },
+  { path: 'users', component: UserListComponent }
+];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],  // forChild, not forRoot
+  exports: [RouterModule]
+})
+export class AdminRoutingModule {}
+```
+
+**Preloading Strategies:**
+```typescript
+// app-routing.module.ts
+@NgModule({
+  imports: [RouterModule.forRoot(routes, {
+    preloadingStrategy: PreloadAllModules  // preload all lazy modules after app loads
+  })]
+})
+```
+
+| Strategy | Behavior |
+|----------|----------|
+| `NoPreloading` (default) | Load only when navigated |
+| `PreloadAllModules` | Preload all lazy modules in background after initial load |
+| **Custom strategy** | Selective preloading based on conditions |
+
+**Custom preloading strategy (preload based on route data):**
+```typescript
+@Injectable({ providedIn: 'root' })
+export class SelectivePreloadStrategy implements PreloadingStrategy {
+  preload(route: Route, load: () => Observable<any>): Observable<any> {
+    return route.data?.['preload'] ? load() : of(null);
+  }
+}
+
+// Route config — only this route gets preloaded
+{ path: 'dashboard', loadChildren: () => import(...), data: { preload: true } }
+{ path: 'settings', loadChildren: () => import(...) }  // NOT preloaded
+```
+
+**Dynamic lazy loading based on user roles:**
 ```typescript
 this.dynamicRouteService.getDynamicRoutes().subscribe(routesData => {
   const routes = routesData.map(r => ({
@@ -148,6 +212,65 @@ this.dynamicRouteService.getDynamicRoutes().subscribe(routesData => {
   this.router.config.unshift(...routes);
 });
 ```
+
+### Lazy Loading Components by User Behavior (Angular 17+ `@defer`)
+
+Angular 17 introduced `@defer` blocks — lazy load **individual components** (not just modules) based on triggers like viewport visibility, interaction, or idle time.
+
+```html
+<!-- Load when component enters the viewport (scroll-triggered) -->
+@defer (on viewport) {
+  <app-heavy-chart [data]="chartData" />
+} @placeholder {
+  <div class="skeleton-loader">Loading chart...</div>
+} @loading (minimum 500ms) {
+  <app-spinner />
+} @error {
+  <p>Failed to load chart.</p>
+}
+
+<!-- Load when user hovers over the area -->
+@defer (on hover) {
+  <app-detailed-tooltip />
+} @placeholder {
+  <span>Hover for details</span>
+}
+
+<!-- Load when user interacts (click, keydown) with trigger element -->
+@defer (on interaction(loadBtn)) {
+  <app-admin-panel />
+} @placeholder {
+  <button #loadBtn>Open Admin Panel</button>
+}
+
+<!-- Load after browser is idle (good for below-fold content) -->
+@defer (on idle) {
+  <app-recommendations />
+}
+
+<!-- Load after a timer -->
+@defer (on timer(3s)) {
+  <app-promo-banner />
+}
+
+<!-- Combine conditions -->
+@defer (on viewport; when user.isAdmin) {
+  <app-admin-widget />
+}
+```
+
+**`@defer` triggers:**
+
+| Trigger | When Component Loads |
+|---------|---------------------|
+| `on idle` | Browser is idle (requestIdleCallback) |
+| `on viewport` | Element scrolls into view (IntersectionObserver) |
+| `on interaction` | User clicks/focuses/hovers on trigger element |
+| `on hover` | User hovers over placeholder |
+| `on timer(Xms)` | After specified delay |
+| `when condition` | When expression becomes truthy |
+
+**Why this matters:** Before `@defer`, you needed complex `ViewContainerRef` + `ComponentFactoryResolver` code to lazy-load individual components. Now it's declarative in the template.
 
 ### Pipes
 

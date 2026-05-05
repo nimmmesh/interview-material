@@ -137,6 +137,84 @@ Closed (normal) → failures exceed threshold → Open (reject all)
 
 ---
 
+## Microfrontends
+
+### What is a Microfrontend?
+A microfrontend extends microservice principles to the frontend — splitting a monolithic frontend into smaller, independently deployable UI applications that compose into a single user experience.
+
+```
+┌──────────────────────────────────────────────────┐
+│                  Container / Shell                │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
+│  │  Team A     │  │  Team B     │  │  Team C     │  │
+│  │  (Angular)  │  │  (React)    │  │  (Vue)      │  │
+│  │  Catalog    │  │  Cart       │  │  Checkout   │  │
+│  └────────────┘  └────────────┘  └────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
+### Implementation Approaches
+
+| Approach | How | Pros | Cons |
+|----------|-----|------|------|
+| **Module Federation** (Webpack 5) | Load remote modules at runtime | Best DX, shared dependencies, lazy loading | Webpack-only, version alignment needed |
+| **Single-SPA** | Framework-agnostic orchestrator | Polyglot (mix Angular + React), mature ecosystem | Complex setup, global state tricky |
+| **iframes** | Embed each micro-app in iframe | Complete isolation, simple | Poor UX (no shared styles/routing), performance hit |
+| **Web Components** | Each micro-app as custom element | Framework-agnostic, native browser support | Limited tooling, Shadow DOM styling challenges |
+
+### Data Sharing Between Microfrontends
+
+The core challenge is sharing state between independently deployed apps. The patterns mirror what you'd use in a non-microfrontend app, adapted for cross-boundary communication:
+
+| Pattern | How | When to Use | Non-MFE Equivalent |
+|---------|-----|-------------|---------------------|
+| **Custom Events** | `window.dispatchEvent(new CustomEvent('cart-updated', { detail }))` | Loose coupling, simple notifications | Component `@Output()` events |
+| **Shared State Store** | Shared Redux/Zustand store loaded via Module Federation | Complex shared state, multiple consumers | NgRx / Redux in monolith |
+| **URL / Route Params** | Pass data via URL query params or route segments | Navigation-driven data | Angular Router params |
+| **Props / Attributes** | Pass data as Web Component attributes or framework props | Parent → child data flow | `@Input()` bindings |
+| **Pub/Sub (Event Bus)** | Lightweight event bus (RxJS Subject on `window`) | Decoupled, event-driven communication | Service with `BehaviorSubject` |
+| **Shared API Layer** | Each MFE fetches from same backend, caches shared | Independent data fetching | Shared Angular service |
+
+**Custom Events example (framework-agnostic):**
+```javascript
+// Producer (Cart MFE) — dispatches event
+function addToCart(item) {
+  cart.push(item);
+  window.dispatchEvent(new CustomEvent('cart:updated', {
+    detail: { items: cart, total: cart.length }
+  }));
+}
+
+// Consumer (Header MFE) — listens for event
+window.addEventListener('cart:updated', (e) => {
+  document.getElementById('cart-count').textContent = e.detail.total;
+});
+```
+
+**Shared state via Module Federation:**
+```javascript
+// shared-store (remote module exposed by Shell)
+import { BehaviorSubject } from 'rxjs';
+export const user$ = new BehaviorSubject(null);
+export const setUser = (user) => user$.next(user);
+
+// Auth MFE — sets user after login
+import { setUser } from 'shell/shared-store';
+setUser({ name: 'Alice', role: 'admin' });
+
+// Dashboard MFE — reads user
+import { user$ } from 'shell/shared-store';
+user$.subscribe(user => console.log('Logged in:', user?.name));
+```
+
+### Key Design Principles
+- **Independent deployment** — each MFE has its own CI/CD pipeline
+- **Team ownership** — each team owns a vertical slice (UI + API + DB)
+- **Shared nothing** — minimize shared dependencies; share only contracts
+- **Consistent UX** — use a shared design system / component library
+
+---
+
 ## Tradeoffs
 
 | Decision | Tradeoff |
