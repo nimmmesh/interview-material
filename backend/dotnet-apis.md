@@ -16,6 +16,158 @@
 - **HTTP methods = operations:** GET (read), POST (create), PUT (replace), PATCH (partial update), DELETE (remove).
 - **Best practices:** Accept/respond with JSON, use plural nouns (`/cars` not `/car`), use HTTP status codes, version your API, use SSL/TLS.
 
+### PUT vs PATCH
+
+| | PUT | PATCH |
+|-|-----|-------|
+| **Semantics** | Replace the **entire** resource | Update **specific fields** only |
+| **Idempotent?** | Yes | Yes (in practice) |
+| **Payload** | Must send full object | Send only changed fields |
+| **Missing fields** | Set to null/default | Left unchanged |
+
+```csharp
+// PUT /api/users/1 — replaces the entire user
+[HttpPut("{id}")]
+public IActionResult UpdateUser(int id, [FromBody] UserDto dto)
+{
+    var user = _db.Users.Find(id);
+    if (user == null) return NotFound();
+
+    // ALL fields overwritten — if dto.Phone is null, user.Phone becomes null
+    user.Name = dto.Name;
+    user.Email = dto.Email;
+    user.Phone = dto.Phone;
+    _db.SaveChanges();
+    return Ok(user);
+}
+
+// PATCH /api/users/1 — updates only provided fields
+[HttpPatch("{id}")]
+public IActionResult PatchUser(int id, [FromBody] JsonPatchDocument<UserDto> patchDoc)
+{
+    var user = _db.Users.Find(id);
+    if (user == null) return NotFound();
+
+    var dto = _mapper.Map<UserDto>(user);
+    patchDoc.ApplyTo(dto);   // Only modifies fields specified in patch
+    _mapper.Map(dto, user);
+    _db.SaveChanges();
+    return Ok(user);
+}
+```
+
+```json
+// PATCH request body (JSON Patch format)
+[
+  { "op": "replace", "path": "/name", "value": "Alice Updated" },
+  { "op": "replace", "path": "/phone", "value": "+1-555-0123" }
+]
+```
+
+**When to use:** PUT for full form submissions (edit user profile). PATCH for partial updates (toggle status, update a single field).
+
+### Passing Data in GET Requests
+
+GET requests should NOT have a request body (though HTTP technically allows it, most servers/proxies ignore or reject it).
+
+**Recommended approaches:**
+
+```csharp
+// 1. Query parameters (most common)
+// GET /api/users?name=Alice&role=admin
+[HttpGet]
+public IActionResult GetUsers([FromQuery] string name, [FromQuery] string role)
+{
+    var users = _db.Users.Where(u => u.Name == name && u.Role == role);
+    return Ok(users);
+}
+
+// 2. Route parameters (for resource identification)
+// GET /api/users/42
+[HttpGet("{id}")]
+public IActionResult GetUser(int id) => Ok(_db.Users.Find(id));
+
+// 3. Complex filter object via query string
+// GET /api/users?Name=Alice&MinAge=25&SortBy=name
+[HttpGet]
+public IActionResult Search([FromQuery] UserFilter filter)
+{
+    // filter.Name, filter.MinAge, filter.SortBy all bound from query string
+    return Ok(_userService.Search(filter));
+}
+
+// 4. Headers (for metadata, not data)
+// Authorization: Bearer <token>
+// X-Tenant-Id: 42
+[HttpGet]
+public IActionResult GetData([FromHeader(Name = "X-Tenant-Id")] int tenantId) { }
+```
+
+**Why no body in GET?**
+- GET is for retrieval — should be cacheable and bookmarkable
+- Proxies, CDNs, and browsers may strip or ignore GET body
+- REST convention: data retrieval params go in URL
+
+**For complex search with many filters:** Use POST with a body to `/api/users/search` — this is an accepted REST exception.
+
+### HTTP Status Codes
+
+| Code | Name | Meaning | When to Use |
+|------|------|---------|-------------|
+| **200** | OK | Request succeeded | Successful GET, PUT, PATCH |
+| **201** | Created | Resource created | Successful POST (return with `Location` header) |
+| **204** | No Content | Success, no body | Successful DELETE |
+| **301** | Moved Permanently | Resource moved | URL changed permanently |
+| **304** | Not Modified | Cached version is current | Conditional GET (ETag/If-Modified-Since) |
+| **400** | Bad Request | Invalid input | Validation errors, malformed JSON |
+| **401** | Unauthorized | Not authenticated | Missing or invalid auth token |
+| **403** | Forbidden | Authenticated but not authorized | User lacks required role/permission |
+| **404** | Not Found | Resource doesn't exist | Invalid URL or missing resource |
+| **405** | Method Not Allowed | Wrong HTTP verb | POST to a GET-only endpoint |
+| **409** | Conflict | State conflict | Duplicate entry, concurrent update conflict |
+| **413** | Payload Too Large | Request body exceeds limit | File upload too big, JSON body too large |
+| **429** | Too Many Requests | Rate limit exceeded | API throttling |
+| **500** | Internal Server Error | Unhandled exception | Server-side bug |
+| **502** | Bad Gateway | Upstream server error | Reverse proxy can't reach backend |
+| **503** | Service Unavailable | Server overloaded/maintenance | Temporary downtime |
+
+**413 vs 404 — key difference:**
+
+| | 413 Payload Too Large | 404 Not Found |
+|-|----------------------|---------------|
+| **Category** | Client error (request issue) | Client error (routing issue) |
+| **Cause** | Request body exceeds server's size limit | URL doesn't match any resource/endpoint |
+| **Example** | Uploading a 500MB file when limit is 100MB | `GET /api/userz` (typo) or `GET /api/users/99999` (doesn't exist) |
+| **Fix** | Reduce payload size, increase server limit | Correct the URL or check if resource exists |
+
+```csharp
+// Configuring max request body size in .NET
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100 MB
+});
+
+// Returning proper status codes
+[HttpPost("upload")]
+public IActionResult Upload(IFormFile file)
+{
+    if (file.Length > 100_000_000)
+        return StatusCode(413, new { message = "File exceeds 100MB limit" });
+
+    return Ok();
+}
+
+[HttpGet("{id}")]
+public IActionResult GetUser(int id)
+{
+    var user = _db.Users.Find(id);
+    if (user == null)
+        return NotFound(new { message = $"User {id} not found" });  // 404
+
+    return Ok(user);  // 200
+}
+```
+
 ### MVC vs Web API
 
 | | ASP.NET MVC | ASP.NET Web API |
@@ -125,6 +277,63 @@ Default for uncaught exceptions: **500 Internal Server Error**.
 | Performance | Slower | Faster (2nd fastest ORM) |
 | Use case | Complex domain models | Performance-critical queries |
 
+### When to Use Raw SQL vs ORM
+
+| Scenario | Use | Why |
+|----------|-----|-----|
+| Standard CRUD operations | **ORM (EF)** | Clean, type-safe, change tracking handles inserts/updates |
+| Complex reports with many joins | **Raw SQL / Dapper** | ORM-generated SQL can be inefficient for complex queries |
+| Bulk insert/update (10K+ rows) | **Raw SQL** | EF tracks every entity — very slow for bulk operations |
+| Stored procedures | **Dapper or EF raw** | Both support it; Dapper is simpler |
+| Dynamic queries (runtime filters) | **ORM (EF LINQ)** | Compose `.Where()` chains dynamically |
+| Performance-critical hot paths | **Dapper / Raw SQL** | Full control, no ORM overhead |
+| Rapid prototyping / new features | **ORM (EF)** | Faster development, migrations, less boilerplate |
+| Legacy database with unusual schema | **Dapper** | No need to map every relationship |
+
+**Hybrid approach (recommended for production):**
+```csharp
+// Standard CRUD — use EF (clean, type-safe)
+public async Task<User> GetUser(int id)
+    => await _context.Users.FindAsync(id);
+
+public async Task CreateUser(User user)
+{
+    _context.Users.Add(user);
+    await _context.SaveChangesAsync();
+}
+
+// Complex reporting query — use Dapper (performance)
+public async Task<IEnumerable<SalesReport>> GetSalesReport(DateTime from, DateTime to)
+{
+    var sql = @"
+        SELECT p.Category, SUM(o.Amount) AS TotalSales, COUNT(*) AS OrderCount
+        FROM Orders o
+        JOIN Products p ON o.ProductId = p.Id
+        WHERE o.OrderDate BETWEEN @From AND @To
+        GROUP BY p.Category
+        ORDER BY TotalSales DESC";
+
+    using var conn = new SqlConnection(_connectionString);
+    return await conn.QueryAsync<SalesReport>(sql, new { From = from, To = to });
+}
+
+// Bulk insert — use raw SQL (EF would be 100x slower)
+public async Task BulkInsertLogs(List<LogEntry> logs)
+{
+    var dt = new DataTable();
+    dt.Columns.Add("Message"); dt.Columns.Add("Level"); dt.Columns.Add("Timestamp");
+    foreach (var log in logs)
+        dt.Rows.Add(log.Message, log.Level, log.Timestamp);
+
+    using var conn = new SqlConnection(_connectionString);
+    using var bulk = new SqlBulkCopy(conn) { DestinationTableName = "Logs" };
+    await conn.OpenAsync();
+    await bulk.WriteToServerAsync(dt);
+}
+```
+
+**Rule of thumb:** Start with EF for everything. Switch to Dapper/raw SQL for specific queries where EF is measurably slow (profiled, not guessed).
+
 ---
 
 ## WCF (Legacy — know for comparison)
@@ -209,7 +418,9 @@ var list = large.ToList();                // NOW executes — result: { 4 }
 REST:         GET=read  POST=create  PUT=replace  PATCH=partial  DELETE=remove
 HEADERS:      Accept (want) | Content-Type (sending) | Authorization: Bearer <token>
 BINDING:      Simple types → FromUri | Complex types → FromBody
-STATUS:       200=OK  201=Created  204=NoContent  400=BadRequest  401=Unauth  404=NotFound  500=Error
+STATUS:       200=OK  201=Created  204=NoContent  400=BadRequest  401=Unauth  403=Forbidden  404=NotFound  413=TooLarge  429=RateLimit  500=Error
+METHODS:      GET=read  POST=create  PUT=replace(full)  PATCH=update(partial)  DELETE=remove
+GET DATA:     Query params (?key=val) | Route params (/id) | Headers | NO body
 CORS:         Install package → config.EnableCors() → [EnableCors] attribute
 EF:           Code First | DB First | Model First
 EF STATES:    Added | Modified | Deleted | Unchanged | Detached

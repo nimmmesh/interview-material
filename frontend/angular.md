@@ -200,11 +200,129 @@ filter:                     ✓              ✓      (skips "a" — too short)
 switchMap:                  →API           →API   (cancels previous if pending)
 ```
 
-### Change Detection
+### Change Detection — Deep Dive
 
-- **Default:** Checks entire component tree on every event/timer/HTTP response.
-- **OnPush:** Checks only when: (1) input reference changes, (2) event fires in component/child, (3) async pipe emits, (4) manual `markForCheck()`.
-- Use OnPush for performance — prevents unnecessary re-renders.
+Angular uses **Zone.js** to monkey-patch all async APIs (setTimeout, addEventListener, XHR, Promises). When any async event completes, Zone.js notifies Angular, which triggers change detection from the root component downward.
+
+**How it works:**
+```
+User clicks button
+       │
+       ▼
+Zone.js intercepts the event
+       │
+       ▼
+Angular's NgZone triggers ApplicationRef.tick()
+       │
+       ▼
+Change detection runs from ROOT component downward
+       │
+       ▼
+For each component: compare current values vs previous values
+       │
+       ├── Value changed? → Update the DOM
+       └── No change? → Skip (but still checked in Default mode)
+```
+
+**Default vs OnPush:**
+
+| | Default | OnPush |
+|-|---------|--------|
+| **Trigger** | Every async event (click, timer, HTTP, etc.) | Only specific triggers |
+| **Scope** | Checks ALL components in the tree | Checks this component only when triggered |
+| **Performance** | Slower (checks everything) | Faster (skips unchanged branches) |
+| **Gotcha** | None — always works | Mutating objects won't trigger detection |
+
+**OnPush triggers (component re-checks when):**
+1. `@Input()` reference changes (new object, not mutation)
+2. DOM event fires inside the component or its children
+3. `async` pipe receives a new emission
+4. Manual `ChangeDetectorRef.markForCheck()` or `detectChanges()`
+
+**Example — OnPush pitfall:**
+```typescript
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class UserComponent {
+  @Input() user!: User;
+}
+
+// Parent component:
+// ❌ WRONG — mutation, same reference, OnPush won't detect it
+this.user.name = 'Alice';
+
+// ✅ CORRECT — new object reference triggers OnPush
+this.user = { ...this.user, name: 'Alice' };
+```
+
+**Manual change detection:**
+```typescript
+constructor(private cdr: ChangeDetectorRef) {}
+
+updateFromWebSocket(data: any) {
+  this.data = data;
+  this.cdr.markForCheck();    // Mark this component and ancestors as dirty
+  // OR
+  this.cdr.detectChanges();   // Run change detection immediately for this component only
+}
+```
+
+**`detach()` / `reattach()` — full control:**
+```typescript
+ngOnInit() {
+  this.cdr.detach();  // Completely remove from change detection tree
+}
+
+onRefresh() {
+  this.cdr.detectChanges();  // Manually check only when needed
+}
+```
+
+**Angular Signals (16+) — the future of change detection:**
+- Signals provide fine-grained reactivity without Zone.js
+- Only the specific component that reads a changed signal re-renders
+- Eventually replaces zone.js-based detection entirely
+
+```typescript
+name = signal('Alice');
+updatedName = computed(() => this.name().toUpperCase());
+
+// Template
+// {{ name() }} — automatically re-renders when signal changes
+```
+
+### `ngOnInit` vs `constructor`
+
+| | `constructor` | `ngOnInit` |
+|-|--------------|------------|
+| **What** | TypeScript/ES6 class feature | Angular lifecycle hook |
+| **When** | Called when class is instantiated (before Angular) | Called after Angular sets `@Input()` properties |
+| **`@Input()` available?** | No — inputs are `undefined` | Yes — all inputs are bound |
+| **DI available?** | Yes — injected services are available | Yes |
+| **Use for** | Dependency injection only | Initialization logic, API calls, subscriptions |
+| **Called** | Once (by JavaScript engine) | Once (by Angular) |
+
+```typescript
+@Component({ selector: 'app-user' })
+export class UserComponent implements OnInit {
+  @Input() userId!: number;
+  user: User;
+
+  constructor(private userService: UserService) {
+    // ✅ DI injection — this is what constructors are for
+    console.log(this.userId);  // ❌ undefined — not set yet!
+  }
+
+  ngOnInit() {
+    // ✅ @Input() values are now available
+    console.log(this.userId);  // ✅ has the value from parent
+    this.userService.getUser(this.userId).subscribe(u => this.user = u);
+  }
+}
+```
+
+**Rule of thumb:** Constructor = inject dependencies. `ngOnInit` = everything else.
 
 ### Forms
 

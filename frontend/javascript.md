@@ -257,6 +257,47 @@ const debouncedSearch = useDebounce(searchTerm, 300);
 useEffect(() => { fetchResults(debouncedSearch); }, [debouncedSearch]);
 ```
 
+### `sessionStorage` vs `localStorage` vs Cookies
+
+| | `localStorage` | `sessionStorage` | Cookies |
+|-|---------------|------------------|--------|
+| **Capacity** | ~5-10 MB | ~5 MB | ~4 KB |
+| **Lifetime** | Permanent (until manually cleared) | Until tab/window closes | Configurable (`Expires` / `Max-Age`) |
+| **Scope** | Same origin, all tabs | Same origin, **same tab only** | Same origin, sent with every HTTP request |
+| **Sent to server?** | No | No | Yes — automatically with every request |
+| **Access** | JavaScript only | JavaScript only | JavaScript (unless `HttpOnly`) + server |
+| **Use case** | User preferences, theme, cached data | Wizard form state, one-time session data | Auth tokens, session IDs, tracking |
+| **XSS vulnerable?** | Yes | Yes | No (if `HttpOnly` flag set) |
+
+```javascript
+// localStorage — persists across tabs and browser restarts
+localStorage.setItem('theme', 'dark');
+localStorage.getItem('theme');          // 'dark'
+localStorage.removeItem('theme');
+localStorage.clear();                   // Remove all
+
+// sessionStorage — same API, but tab-scoped
+sessionStorage.setItem('step', '3');
+sessionStorage.getItem('step');         // '3' — gone when tab closes
+
+// Cookies — set via document.cookie (or from server via Set-Cookie header)
+document.cookie = 'token=abc123; Secure; SameSite=Strict; Max-Age=3600';
+```
+
+**Security best practices for tokens:**
+- **Auth tokens (JWT):** Store in `HttpOnly` cookies (not accessible via JS → XSS safe)
+- **Never** store sensitive data in `localStorage` — vulnerable to XSS attacks
+- Use `Secure` flag → cookie sent only over HTTPS
+- Use `SameSite=Strict` → prevents CSRF
+
+**When to use what:**
+```
+Auth tokens       → HttpOnly cookies (most secure)
+User preferences  → localStorage (persists across sessions)
+Form wizard state → sessionStorage (auto-clears on tab close)
+Tracking/consent  → cookies (server needs access)
+```
+
 ---
 
 ## Tradeoffs & Pitfalls
