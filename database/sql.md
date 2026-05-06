@@ -83,6 +83,23 @@ FROM Employee e1
 LEFT JOIN Employee e2 ON e1.ManagerId = e2.Id;
 ```
 
+**Find duplicates:**
+```sql
+-- Find which values are duplicated and how many times
+SELECT Name, COUNT(*) AS DuplicateCount
+FROM Employee
+GROUP BY Name
+HAVING COUNT(*) > 1;
+
+-- Find all duplicate rows with full details
+WITH CTE AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY Name ORDER BY Id) AS RN
+    FROM Employee
+)
+SELECT * FROM CTE WHERE RN > 1;   -- duplicate rows only
+-- SELECT * FROM CTE WHERE Name IN (SELECT Name FROM CTE WHERE RN > 1);  -- all rows including originals
+```
+
 **Delete duplicates (keep first):**
 ```sql
 WITH CTE AS (
