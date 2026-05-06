@@ -119,7 +119,70 @@ function mergeIntervals(intervals) {
 
 ---
 
-## Problem 4: LINQ One-Liners (C#)
+## Problem 4: Second Highest Element
+
+**Pattern:** Set deduplication + sorting
+**Difficulty:** Easy
+
+### Approach (Initial — has a flaw)
+Sort descending, deduplicate with Set, return second element.
+
+```javascript
+const secondHighest = (arr) => {
+  arr.sort((a, b) => b - a);
+  const set = new Set(arr);
+  if (set.size < 2) return null;
+  return [...set][1];
+};
+
+console.log(secondHighest([5, 5]));       // null ✅ (only one unique value)
+console.log(secondHighest([3, 1, 4, 4])); // 3 ✅
+console.log(secondHighest([-5, -1, -3])); // -3 ❌ WRONG — returns -5 (Set doesn't preserve sort order)
+```
+
+**Problem:** `Set` preserves *insertion order*, but `sort((a,b) => b-a)` sorts descending by numeric value, so the Set seems to work — **except** `Set` does not re-sort. The real issue: this approach is O(n log n) due to sort, and the Set spread creates an extra array.
+
+### Optimized — Single Pass O(n)
+```javascript
+function secondHighest(arr) {
+  let first = -Infinity;
+  let second = -Infinity;
+
+  for (const num of arr) {
+    if (num > first) {
+      second = first;
+      first = num;
+    } else if (num > second && num !== first) {
+      second = num;
+    }
+  }
+
+  return second === -Infinity ? null : second;
+}
+
+console.log(secondHighest([5, 5]));         // null ✅
+console.log(secondHighest([3, 1, 4, 4]));   // 3 ✅
+console.log(secondHighest([-5, -1, -3]));   // -3 ✅
+console.log(secondHighest([1]));            // null ✅
+console.log(secondHighest([7, 7, 7]));      // null ✅
+console.log(secondHighest([-10, -20, 0]));  // -10 ✅
+```
+
+### Complexity
+| Approach | Time | Space |
+|----------|------|-------|
+| Sort + Set | O(n log n) | O(n) |
+| **Single pass** | **O(n)** | **O(1)** |
+
+### Edge Cases
+- All elements are the same → return `null`
+- Array has only one element → return `null`
+- Negative numbers → must use `-Infinity` as initial values (not `0`)
+- Duplicates of the highest → skip them (`num !== first` check)
+
+---
+
+## Problem 5: LINQ One-Liners (C#)
 
 **Pattern:** GroupBy + Aggregation
 
