@@ -2,7 +2,40 @@
 
 ---
 
-## Problem 1: Longest Palindromic Substring
+## Problem 1: Two Sum / Pair Sum
+
+**Pattern:** Hash Set lookup
+**Difficulty:** Easy
+
+### Approach
+For each number, check if `target - num` exists in a set. If yes, pair found. Otherwise, add `num` to set.
+
+### Code (JavaScript)
+```javascript
+function hasPairSum(arr, target) {
+  const seen = new Set();
+  for (const num of arr) {
+    if (seen.has(target - num)) return true;
+    seen.add(num);
+  }
+  return false;
+}
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| Brute force (nested loops) | O(n²) | O(1) |
+| **Optimized (hash set)** | **O(n)** | **O(n)** |
+
+### Variations
+- Return indices instead of boolean (use Map instead of Set)
+- Find all pairs (don't return early)
+- Three Sum (sort + two pointers, O(n²))
+
+---
+
+## Problem 2: Longest Palindromic Substring
 
 **Pattern:** Expand Around Center
 **Difficulty:** Medium
@@ -45,7 +78,7 @@ function longestPalindrome(s) {
 
 ---
 
-## Problem 2: Merge Intervals
+## Problem 3: Merge Intervals
 
 **Pattern:** Sort + Greedy Merge
 **Difficulty:** Medium
@@ -86,7 +119,7 @@ function mergeIntervals(intervals) {
 
 ---
 
-## Problem 3: Second Highest Element
+## Problem 4: Second Highest Element
 
 **Pattern:** Set deduplication + sorting
 **Difficulty:** Easy
@@ -149,7 +182,7 @@ console.log(secondHighest([-10, -20, 0]));  // -10 ✅
 
 ---
 
-## Problem 4: Max Consecutive Ones
+## Problem 5: Max Consecutive Ones
 
 **Pattern:** Sliding window / counter
 **Difficulty:** Easy
@@ -192,7 +225,7 @@ console.log(findMaxConsecutiveOnes([]));                   // 0
 
 ---
 
-## Problem 5: LINQ One-Liners (C#)
+## Problem 6: LINQ One-Liners (C#)
 
 **Pattern:** GroupBy + Aggregation
 
