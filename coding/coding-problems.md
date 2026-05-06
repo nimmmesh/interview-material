@@ -182,7 +182,50 @@ console.log(secondHighest([-10, -20, 0]));  // -10 ✅
 
 ---
 
-## Problem 5: LINQ One-Liners (C#)
+## Problem 5: Max Consecutive Ones
+
+**Pattern:** Sliding window / counter
+**Difficulty:** Easy
+**LeetCode:** #485
+
+### Approach
+Track a running count of consecutive 1s. Reset to 0 when a non-1 is encountered. Track the max seen so far.
+
+### Code (JavaScript)
+```javascript
+var findMaxConsecutiveOnes = function(nums) {
+  let count = 0;
+  let max = 0;
+  nums.forEach((ele) => {
+    if (ele === 1) {
+      count++;
+      max = Math.max(count, max);
+    } else {
+      count = 0;
+    }
+  });
+  return max;
+};
+
+console.log(findMaxConsecutiveOnes([1, 1, 0, 1, 1, 1])); // 3
+console.log(findMaxConsecutiveOnes([1, 0, 1, 1, 0, 1])); // 2
+console.log(findMaxConsecutiveOnes([0, 0, 0]));           // 0
+console.log(findMaxConsecutiveOnes([1]));                  // 1
+console.log(findMaxConsecutiveOnes([]));                   // 0
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| **Single pass** | **O(n)** | **O(1)** |
+
+### Variations
+- **Max Consecutive Ones II** (LeetCode #487): You may flip at most one 0 → sliding window with at most one 0 inside
+- **Max Consecutive Ones III** (LeetCode #1004): You may flip at most K zeros → sliding window tracking zero count
+
+---
+
+## Problem 6: LINQ One-Liners (C#)
 
 **Pattern:** GroupBy + Aggregation
 
