@@ -106,6 +106,34 @@ SELECT * FROM CTE WHERE RowNum % 2 = 0; -- even rows
 WHERE (@code IS NULL OR code = @code)
 ```
 
+**Names ending with a specific character (LIKE pattern):**
+```sql
+SELECT DISTINCT Name
+FROM student_marks
+WHERE Name LIKE '%a';
+
+-- Other LIKE patterns:
+-- 'A%'     → starts with A
+-- '%an%'   → contains "an"
+-- '_a%'    → second character is "a"
+-- '[ABC]%' → starts with A, B, or C
+```
+
+**Total marks per student (aggregate across subjects):**
+```sql
+SELECT Name, SUM(Marks) AS TotalMarks
+FROM student_marks
+GROUP BY Name;
+
+-- With filtering: only students with total > 200
+SELECT Name, SUM(Marks) AS TotalMarks
+FROM student_marks
+GROUP BY Name
+HAVING SUM(Marks) > 200;
+```
+
+> **`WHERE` vs `HAVING`:** `WHERE` filters rows *before* grouping. `HAVING` filters groups *after* aggregation. You cannot use aggregate functions in `WHERE`.
+
 ### Temp Tables vs Table Variables
 
 | | Temp Table (`#temp`) | Table Variable (`@table`) |
