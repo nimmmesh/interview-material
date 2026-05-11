@@ -52,6 +52,96 @@ app.use('/api', router);
 | 429 | Too Many Requests | Rate limit exceeded |
 | 500 | Internal Server Error | Unhandled server errors |
 
+### Passing Data in GET Requests
+
+> ⚠️ **GET requests should NOT have a request body.** Most servers/proxies ignore or reject it.
+
+| Method | How | Example URL / Code |
+|--------|-----|--------------------|
+| **Route params** | `/users/:id` | `GET /users/42` → `req.params.id` |
+| **Query string** | `?key=value` | `GET /users?role=admin&page=2` → `req.query.role` |
+| **Headers** | Custom headers | `req.headers['x-tenant-id']` |
+
+```javascript
+// Route params — identify a specific resource
+router.get('/users/:id', (req, res) => {
+  const userId = req.params.id;         // "42"
+});
+
+// Query params — filtering, pagination, sorting
+router.get('/users', (req, res) => {
+  const { page = 1, limit = 10, sort = 'name', role } = req.query;
+  // GET /users?page=2&limit=20&sort=-createdAt&role=admin
+});
+
+// 💡 For complex search with many filters, use POST with body instead
+router.post('/users/search', (req, res) => {
+  const { filters, dateRange, tags } = req.body;
+});
+```
+
+### PUT vs PATCH
+
+| | PUT | PATCH |
+|-|-----|-------|
+| **Action** | Replace **entire** resource | **Partial** update |
+| **Body** | Full object required | Only changed fields |
+| **Missing fields** | Set to null/default | Left unchanged |
+| **Idempotent** | Yes | Yes |
+
+```javascript
+// PUT — full replacement (must send all fields)
+router.put('/users/:id', async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    req.body,                           // Replaces entire document
+    { new: true, overwrite: true }
+  );
+  res.json(user);
+});
+
+// PATCH — partial update (send only what changed)
+router.patch('/users/:id', async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { $set: req.body },                 // Updates only provided fields
+    { new: true, runValidators: true }
+  );
+  res.json(user);
+});
+```
+
+### When to Use Raw Queries vs ORM
+
+> 💡 **Rule of thumb:** Start with ORM (Mongoose/Prisma) for everything. Drop to raw queries only when ORM is **measurably slow**.
+
+| Scenario | Use | Why |
+|----------|-----|-----|
+| Standard CRUD operations | **ORM** (Mongoose / Prisma) | Validation, schema, type safety |
+| Complex aggregations | **Raw query** / Aggregation pipeline | ORM abstractions add overhead |
+| Bulk insert/update (**10K+** rows) | **Raw query** | ORM tracks every document — very slow |
+| Simple joins / population | **ORM** (`.populate()` / Prisma `include`) | Clean, readable, auto-typed |
+| Performance-critical hot paths | **Raw query** | Full control, no ORM overhead |
+| Dynamic query building | **ORM** | Chainable query builders |
+
+```javascript
+// ORM — Mongoose (simple, validated)
+const users = await User.find({ role: 'admin' }).sort('-createdAt').limit(10);
+
+// Raw query — MongoDB native driver (complex aggregation)
+const stats = await db.collection('orders').aggregate([
+  { $match: { status: 'completed', createdAt: { $gte: lastMonth } } },
+  { $group: { _id: '$vendorId', total: { $sum: '$amount' }, count: { $sum: 1 } } },
+  { $sort: { total: -1 } }
+]).toArray();
+
+// Raw query — SQL via knex/pg (when using PostgreSQL with Node.js)
+const result = await pool.query(
+  'SELECT department, AVG(salary) as avg_sal FROM employees GROUP BY department HAVING AVG(salary) > $1',
+  [50000]
+);
+```
+
 ---
 
 ## Deep Dive

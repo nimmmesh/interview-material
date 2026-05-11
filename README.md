@@ -12,7 +12,7 @@ interview-material/
 │   │   ├── dotnet-apis.md               — ASP.NET Web API, REST, EF, CORS, PUT vs PATCH, HTTP status codes
 │   │   ├── authentication-security.md   — OAuth 2.0, JWT, OWASP, end-to-end auth flow (Angular → .NET → SQL)
 │   │   ├── design-patterns.md           — Singleton, Factory, Strategy, Observer, CQRS, Saga, API Gateway (C#)
-│   │   └── performance.md              — App/frontend/DB optimization, bottleneck identification
+│   │   └── performance.md              — .NET app optimization, GC, bottleneck identification tools
 │   └── nodejs/
 │       ├── authentication-security.md   — Passport.js, bcrypt, JWT, session auth, Helmet, CORS, rate limiting
 │       ├── nodejs-apis.md               — Express.js, middleware, error handling, REST, PM2, Winston
@@ -23,19 +23,21 @@ interview-material/
 │   └── coding-problems-dotnet.md        — C# equivalents of all problems + LINQ one-liners
 ├── database/
 │   ├── sql.md                           — Normalization, indexes, joins, query patterns, index cardinality
-│   └── mongodb.md                       — Aggregation pipeline, query optimization, index cardinality, sparse/partial indexes
+│   ├── mongodb.md                       — Aggregation pipeline, query optimization, index cardinality, sparse/partial indexes
+│   └── performance.md                   — Database performance techniques, indexing, sharding, partitioning
 ├── devops/
 │   └── cloud-devops.md                  — Azure (App Service, Functions), Kafka vs RabbitMQ, Docker/K8s
 ├── frontend/
 │   ├── css.md                           — CSS specificity calculation, resolution rules, best practices
 │   ├── javascript.md                    — Closures, this, prototypes, debounce/throttle, storage, immutability
 │   ├── angular.md                       — Lifecycle hooks, RxJS, change detection, lazy loading, microfrontends, tooling
-│   └── react.md                         — State management, microfrontends, tooling
+│   ├── react.md                         — State management, microfrontends, tooling
+│   └── performance.md                   — Frontend performance techniques, bundling, lazy loading, CDN
 ├── resume/
 │   └── professional-resume-writing-guidelines.md  — PAR/STAR bullet structures, action verbs, quantification
 ├── system-design/
 │   └── system-design.md                 — Monolith vs microservices, scaling, caching, Kafka, payment systems, CAP theorem
-├── _full-knowledge-base.md              — All files combined (for ChatGPT/LLM export)
+├── _full-knowledge-base.txt             — All files combined as plain text (for ChatGPT/LLM export)
 └── README.md
 ```
 
@@ -54,8 +56,8 @@ Every file follows a consistent structure:
 
 | Metric | Value |
 |--------|-------|
-| Files | 20 |
-| Total lines | ~6,400 |
+| Files | 22 |
+| Total lines | ~6,600 |
 | Topics covered | 70+ |
 | Coding problems | 6 |
 
