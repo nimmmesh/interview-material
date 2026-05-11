@@ -78,3 +78,25 @@ DATABASE:  Index | Avoid SELECT * | EXISTS > IN | No cursors | Covering indexes
 TOOLS:     New Relic | SSMS Execution Plan | SQL Profiler | DevTools | Load tests
 INCIDENT:  Assess → Communicate → Isolate → Fix → Document → Prevent
 ```
+
+---
+
+## Senior-Level Backend Concepts Checklist
+
+### Distributed Systems
+- CAP theorem, eventual consistency, strong consistency, partition tolerance
+
+### Database Concepts
+- Indexing, cardinality, selectivity, optimistic locking, pessimistic locking, connection pooling
+
+### Scalability
+- Horizontal scaling, load balancing, caching, sharding, partitioning
+
+### Event-Driven Architecture
+- Kafka, retries, DLQ, event ordering, consumer groups, backpressure
+
+### Reliability Patterns
+- Circuit breakers, retries, saga pattern, outbox pattern, idempotency
+
+### Performance
+- Redis caching, rate limiting, query optimization, batching, async processing

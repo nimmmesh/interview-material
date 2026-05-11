@@ -35,6 +35,114 @@
 - **Covering index:** Includes all columns needed by query → no table lookup needed
 - Avoid over-indexing (storage + write overhead)
 
+### Index Cardinality
+
+Index cardinality refers to the **uniqueness of values** in an indexed column — how many distinct values exist relative to the total number of rows.
+
+**High Cardinality** — many unique values (`UserId`, `Email`, `OrderId`):
+```txt
+1M rows → 1M unique emails
+```
+✅ Very efficient — index lookup narrows down results quickly, fewer rows need scanning.
+```sql
+SELECT * FROM Users WHERE Email = 'abc@test.com';
+-- Index on Email is highly effective
+```
+
+**Low Cardinality** — very few unique values (`Gender`, `Status`, `IsActive`):
+```txt
+1M rows → only 2 values (true/false)
+```
+❌ Often less useful — database may prefer full table scan over index lookup + row fetch.
+```sql
+SELECT * FROM Users WHERE IsActive = 1;
+-- If 95% rows are active, index adds overhead
+```
+
+**Selectivity:**
+
+How effectively an index filters rows.
+```txt
+Selectivity = unique values / total rows
+```
+Higher selectivity → better index performance.
+
+**Good vs Poor Index Candidates:**
+
+| Column | Cardinality | Good Index? |
+|---|---|---|
+| Email | High | ✅ |
+| UserId | High | ✅ |
+| OrderId | High | ✅ |
+| Gender | Low | ❌ |
+| IsActive | Low | ❌ |
+| Status | Low/Medium | Depends |
+
+**Composite Index Best Practice:**
+```sql
+CREATE INDEX idx_user_status_created
+ON Orders(UserId, Status, CreatedAt);
+```
+Place high-cardinality columns first — `UserId` before `Status` — for better filtering efficiency.
+
+**MongoDB Note:**
+High-cardinality fields are ideal for indexes. Indexing low-cardinality fields (e.g., `isDeleted`) increases index size with little benefit.
+
+**Interview Answer:**
+"Index cardinality refers to the uniqueness of values in an indexed column. High-cardinality indexes like email or user ID are more efficient because they narrow results quickly, whereas low-cardinality indexes like boolean flags are often less useful because many rows share the same value."
+
+### Indexing Decision — Employee Table Scenario
+
+**Table:** `Employee(Id, Status)`
+**Question:** Which column should be indexed?
+
+**Answer:** "It depends on the query patterns and cardinality of the column."
+
+**Index on `Id`:**
+- High cardinality, unique values, extremely selective lookups
+- `Id` is typically already the Primary Key → automatically has a clustered/unique index
+```sql
+SELECT * FROM Employee WHERE Id = 101;
+-- Directly locates a single row
+```
+
+**What about `Status`?** (values: `Active`, `Inactive`, `Pending`)
+- Low-cardinality column — if 90% employees are Active, selectivity is poor
+- Optimizer may choose full table scan over index lookup
+```sql
+SELECT * FROM Employee WHERE Status = 'Active';
+-- Index may be ignored if most rows match
+```
+
+**When low-cardinality indexes still help:**
+
+1. **Combined with another column** — selectivity improves:
+```sql
+CREATE INDEX idx_status_department ON Employee(Status, DepartmentId);
+```
+
+2. **Table is very large** — even low selectivity can reduce I/O on huge datasets
+
+3. **Queries heavily filter by status** — dashboards, background jobs, archival cleanup
+
+4. **Partial / Filtered indexes** (PostgreSQL):
+```sql
+CREATE INDEX idx_active_employees ON Employee(Id) WHERE Status = 'Active';
+```
+
+**What the interviewer is testing:**
+
+| Concept | What They Want to Hear |
+|---|---|
+| Cardinality | High vs low uniqueness awareness |
+| Selectivity | Why DB may ignore an index |
+| Query Optimizer | Full scan can beat index lookup |
+| Tradeoffs | Reads vs writes cost |
+| Real-world thinking | "Depends on workload" mindset |
+
+**Senior-level answer:**
+"`Id` is the obvious candidate — high cardinality, typically already indexed as the primary key. For `Status`, it depends on data distribution and query frequency. A standalone index on a low-cardinality column may not be efficient since the optimizer may prefer a table scan. However, if the app frequently filters by status or the table is very large, a composite or filtered index could still help. I'd decide based on actual query patterns and execution plans rather than blindly indexing every searchable column."
+
 ### Stored Procedure vs Function
 
 | | Stored Procedure | Function |

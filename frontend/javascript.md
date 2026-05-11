@@ -142,6 +142,171 @@ console.log('4');
 // Output: 1, 4, 3, 2
 ```
 
+### Event Loop Execution Order — Async Interview Question
+
+#### Code Example
+
+```javascript
+console.log("A");
+
+setTimeout(() => console.log("B"), 0);
+
+Promise.resolve().then(() => {
+  console.log("C");
+
+  setTimeout(() => console.log("D"), 0);
+});
+
+(async function () {
+  console.log("E");
+
+  await Promise.resolve();
+
+  console.log("F");
+})();
+
+console.log("G");
+```
+
+#### Output
+
+```txt
+A
+E
+G
+C
+F
+B
+D
+```
+
+#### Step-by-Step Execution
+
+**1. Synchronous Execution (Call Stack)**
+
+JavaScript first executes all synchronous code:
+
+```javascript
+console.log("A"); // A
+
+(async function () {
+  console.log("E"); // E
+})();
+
+console.log("G"); // G
+```
+
+Current Output:
+
+```txt
+A
+E
+G
+```
+
+**2. Macrotask Queue (`setTimeout`)**
+
+```javascript
+setTimeout(() => console.log("B"), 0);
+```
+
+`setTimeout` callbacks are placed in the **macrotask queue**.
+
+So `B` waits until:
+- synchronous code finishes
+- all microtasks finish
+
+**3. Microtask Queue (`Promise.then`)**
+
+```javascript
+Promise.resolve().then(() => {
+  console.log("C");
+
+  setTimeout(() => console.log("D"), 0);
+});
+```
+
+`.then()` callbacks are placed in the **microtask queue**.
+
+So after synchronous execution completes:
+- `C` executes
+- `D` gets scheduled into macrotask queue
+
+**4. `async/await` Behavior**
+
+```javascript
+(async function () {
+  console.log("E");
+
+  await Promise.resolve();
+
+  console.log("F");
+})();
+```
+
+Important behavior:
+- code before `await` executes synchronously
+- code after `await` becomes a microtask
+
+So:
+- `E` prints immediately
+- `F` executes later in the microtask queue
+
+#### Final Execution Order
+
+**Synchronous Phase**
+
+```txt
+A
+E
+G
+```
+
+**Microtasks**
+
+```txt
+C
+F
+```
+
+**Macrotasks**
+
+```txt
+B
+D
+```
+
+#### Core Rule
+
+JavaScript execution priority:
+
+```txt
+1. Call Stack (Synchronous code)
+2. Microtask Queue (Promises, async/await)
+3. Macrotask Queue (setTimeout, setInterval)
+```
+
+#### Important Interview Notes
+
+**Microtasks include:**
+- `Promise.then`
+- `catch`
+- `finally`
+- `await`
+- `queueMicrotask`
+
+**Macrotasks include:**
+- `setTimeout`
+- `setInterval`
+- DOM events
+- I/O operations
+
+**Key Rule:** All microtasks execute completely before the event loop processes the next macrotask.
+
+#### Quick Interview Explanation
+
+"JavaScript first runs synchronous code, then processes all microtasks like Promise callbacks and async/await continuations, and finally processes macrotasks like setTimeout callbacks."
+
 ### Callback Hell → Solutions
 **Problem:** Deeply nested callbacks for sequential async operations.
 ```javascript

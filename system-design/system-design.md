@@ -215,6 +215,118 @@ user$.subscribe(user => console.log('Logged in:', user?.name));
 
 ---
 
+## Kafka Event Streaming Architecture
+
+### High-Level Architecture
+```
+Vehicle Devices
+      ↓
+Ingestion APIs
+      ↓
+Kafka Producers
+      ↓
+Kafka Topics
+      ↓
+Consumer Services
+      ↓
+MongoDB / PostgreSQL / Analytics
+```
+
+### Why Kafka?
+Kafka provides durability, replay capability, high throughput, fault tolerance, and horizontal scalability. Useful for high-throughput systems, decoupled architectures, and scalable event processing.
+
+### Example: Telemetry Platform
+
+Vehicle devices continuously send GPS coordinates, speed, fuel data, ignition state, and sensor readings. Backend ingestion APIs validate requests and publish events into Kafka topics. Consumer services process analytics, notifications, dashboard updates, persistence, and alerts.
+
+### Key Concepts
+
+**Partitions:**
+Topics are partitioned by `vehicleId` / `deviceId` for horizontal scaling and ordered processing per device.
+
+**Consumer Groups:**
+Used for parallel processing, workload distribution, and scalability.
+
+**Retry Handling:**
+Failed events are retried with backoff and eventually pushed to DLQ (Dead Letter Queue).
+
+---
+
+## Payment System Design
+
+### Problem
+Implement User A transfers money to User B — at large scale.
+
+### Incorrect Approach
+One long-running DB transaction for the entire flow. Problems: lock contention, poor scalability, transaction bottlenecks, throughput collapse.
+
+### Production-Grade Approach
+Use short-lived transactions, async processing, event-driven architecture, queues, and idempotency.
+
+### Architecture
+```
+User Initiates Payment
+          ↓
+API Validation
+          ↓
+Create Payment Record (PENDING)
+          ↓
+Publish Payment Event to Queue
+          ↓
+Payment Worker Consumes Event
+          ↓
+Debit Sender → Credit Receiver → Insert Ledger Entry → Commit Transaction
+          ↓
+Update Payment Status → Send Notification
+```
+
+### API Layer
+```javascript
+POST /transfer
+
+validateRequest();
+createPaymentRecord({ status: "PENDING" });
+publishToQueue(paymentEvent);
+return 202 Accepted;
+```
+Key idea: API returns quickly, processing happens asynchronously.
+
+### Consumer Layer
+```javascript
+consumePaymentEvent(event) {
+   beginTransaction();
+   debit(sender);
+   credit(receiver);
+   insertLedgerEntry();
+   commitTransaction();
+   updatePaymentStatus("SUCCESS");
+}
+```
+
+### Why This Works
+- Lightweight APIs with short DB transactions
+- Reduced lock contention
+- Scalable consumers with retry handling
+- Failure isolation
+
+### Critical Payment Concepts
+
+**Idempotency:** Prevent duplicate transfers during retries using unique `requestId` / `paymentId`. Repeated requests are safely ignored.
+
+**Retry Handling:** Retry queues, exponential backoff, DLQ.
+
+**Ledger-Based Accounting:** Never directly overwrite balances — maintain immutable transaction ledger and audit trail.
+
+### Related Patterns
+- **Saga Pattern:** Distributed transaction orchestration with compensating transactions
+- **Outbox Pattern:** Reliable event publishing — prevents DB-event inconsistencies
+
+### Interview Answer
+
+"For large-scale payment systems, I would avoid long-running synchronous database transactions. Instead, I'd create a pending payment record and publish an event to a durable queue like Kafka. Dedicated workers would process transfers using short-lived ACID transactions only for balance updates. This minimizes lock contention and allows horizontal scaling. I'd also implement idempotency, retries, ledger entries, and DLQ handling for resiliency."
+
+---
+
 ## Tradeoffs
 
 | Decision | Tradeoff |

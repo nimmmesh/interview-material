@@ -1,5 +1,715 @@
-<!-- ===== FILE: backend/authentication-security.md ===== -->
+# OOP & SOLID Principles — Interview Preparation
 
+---
+
+## Core Concepts
+
+### Four Pillars of OOP
+
+| Pillar | Definition | C# Mechanism |
+|--------|-----------|--------------|
+| **Encapsulation** | Bundle data + methods, hide internals | Access modifiers (`private`, `protected`, `public`) |
+| **Abstraction** | Expose only what's necessary | Abstract classes, interfaces |
+| **Inheritance** | Derive new classes from existing ones | `: BaseClass`, `: IInterface` |
+| **Polymorphism** | Same interface, different behavior | `virtual`/`override`, interfaces |
+
+### Abstract Class vs Interface
+
+| | Abstract Class | Interface |
+|-|---------------|-----------|
+| Instantiation | Cannot | Cannot |
+| Constructor | Yes | No |
+| Fields/state | Yes | No (until C# 8 default methods) |
+| Access modifiers | Yes | No (all public implicitly) |
+| Multiple inheritance | No (single only) | Yes (multiple interfaces) |
+| Method implementation | Can have both abstract and concrete | Only signatures (pre-C# 8) |
+| When to use | Related classes sharing common logic | Unrelated classes sharing a contract |
+
+**Abstract class example — shared base for employees:**
+```csharp
+public abstract class BaseEmployee
+{
+    public int ID { get; set; }
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string GetFullName() => FirstName + " " + LastName;
+    public abstract int GetMonthlySalary(); // subclass MUST implement
+}
+
+public class FullTimeEmployee : BaseEmployee
+{
+    public int AnnualSalary { get; set; }
+    public override int GetMonthlySalary() => AnnualSalary / 12;
+}
+
+public class PartTimeEmployee : BaseEmployee
+{
+    public int HourlyPay { get; set; }
+    public int TotalHoursWorked { get; set; }
+    public override int GetMonthlySalary() => HourlyPay * TotalHoursWorked;
+}
+```
+
+**Interface example — unrelated capabilities:**
+```csharp
+interface IStore { void Read(); void Write(); }
+interface ICompress { void Compress(); void Decompress(); }
+
+public class Document : IStore, ICompress
+{
+    public void Read() { /* ... */ }
+    public void Write() { /* ... */ }
+    public void Compress() { /* ... */ }
+    public void Decompress() { /* ... */ }
+}
+```
+
+**Same method in two interfaces?** Use explicit implementation: `ISupplier.MethodName()`.
+
+### Static Class
+- Cannot be instantiated. All members must be `static`.
+- Is implicitly `sealed`. No instance constructors.
+- Use for stateless utility methods (e.g., `TemperatureConverter.CelsiusToFahrenheit()`).
+- **Singleton ≠ Static class:** Singleton allows one instance with state; static class has no instances.
+
+### `virtual` / `override` / `new`
+- `virtual` → base class declares method can be overridden
+- `override` → derived class replaces base implementation (runtime polymorphism)
+- `new` → derived class *hides* base method (compile-time, NOT polymorphism)
+
+```csharp
+A obj = new B();
+obj.Show(); // override → calls B.Show() | new → calls A.Show()
+```
+
+---
+
+## Deep Dive
+
+### SOLID Principles
+
+#### S — Single Responsibility Principle (SRP)
+> A class should have one, and only one, reason to change.
+
+**Violation:** `Customer` class doing both DB operations AND logging.
+**Fix:** Extract logging into a separate `Logger` class.
+
+**Real-world example** — layered architecture:
+```
+Service/     → HTTP handling, routing, DI config
+Bridge/      → Business orchestration, external calls
+Core/        → Interfaces, models, enums
+Data/        → Database access, query building
+```
+Each layer has ONE reason to change. Database migration → only touches `Data`.
+
+#### O — Open/Closed Principle (OCP)
+> Open for extension, closed for modification.
+
+**Violation:** Growing `if/else` chains when new types are added.
+**Fix:** Strategy pattern — each behavior is a class implementing a common interface.
+
+```csharp
+// Instead of: if (type == "amend") ... else if (type == "copy") ...
+
+public interface ICopyOperationStrategy
+{
+    Task CopyVersion(JObject payload);
+}
+
+public class AmendContract : ICopyOperationStrategy { /* amend logic */ }
+public class CopyContract : ICopyOperationStrategy { /* copy logic */ }
+// New operation? Create new class. Existing code untouched.
+```
+
+**Factory resolves the right strategy:**
+```csharp
+public ICopyOperationStrategy Create(string operation) => operation switch
+{
+    "amend" => _sp.GetService<IAmendContract>(),
+    "clone" => _sp.GetService<ICopyContract>(),
+    _ => throw new NotImplementedException()
+};
+```
+
+#### L — Liskov Substitution Principle (LSP)
+> Subtypes must be substitutable for their base types without breaking behavior.
+
+**Violation:** `Enquiry : Customer` throws `NotImplementedException` on `Add()`.
+**Fix:** Split into `IDiscount` and `IDatabase` interfaces. `Enquiry` implements only `IDiscount`.
+
+**Behavioral contract rules:**
+- Preconditions cannot be strengthened
+- Postconditions cannot be weakened
+- Invariants must be preserved
+- No `NotImplementedException` in inherited methods
+
+#### I — Interface Segregation Principle (ISP)
+> No client should be forced to depend on methods it doesn't use.
+
+**Bad — fat interface:**
+```csharp
+public interface IBaseRepository  // 13+ methods mixing headers, config, module ID
+{
+    Dictionary<string, string> GetLeoHeaders();
+    Task<string> GetPlatformConfigurationValue(string key);
+    string GetSubTypeId();
+    // ... 10 more unrelated methods
+}
+```
+
+**Good — focused interfaces:**
+```csharp
+public interface IAddObligationsRepository
+{
+    Task<Maybe<JObject>> AddBulkObligationsByModelName(JToken request);
+}
+public interface IGetObligationsRepository
+{
+    Task<Maybe<JToken>> GetObligations(JObject requestObj, int limit, int skip);
+}
+public interface IDeleteObligationsRepository
+{
+    Task<Maybe<JObject>> DeleteBulkObligations(List<string> _ids);
+}
+```
+
+#### D — Dependency Inversion Principle (DIP)
+> High-level modules should not depend on low-level modules. Both should depend on abstractions.
+
+**DIP ≠ DI:** DIP is a design principle (depend on abstractions). DI is a technique (inject at runtime).
+
+**Flow:**
+```
+Controller (high-level) → depends on → ILineItemBridgeRepository (abstraction)
+                                              ↑ implements
+                          LineItemBridgeRepository (low-level, knows about DB)
+```
+
+**Wiring at composition root (Startup.cs):**
+```csharp
+services.TryAddScoped<ILineItemBridgeRepository, LineItemBridgeRepository>();
+services.TryAddScoped<IBaseRepository, BaseRepository>();
+```
+
+**DI Lifetimes:**
+
+| Lifetime | Behavior |
+|----------|----------|
+| `Singleton` | One instance for entire app lifetime |
+| `Scoped` | One instance per HTTP request |
+| `Transient` | New instance every time it's requested |
+
+### How SOLID Works Together
+```
+Controller               → SRP: only handles HTTP
+  ├─ IWorkflowFactory    → DIP: depends on abstraction
+  │   └─ WorkflowFactory → OCP: new workflows = new classes
+  │       └─ IWorkFlowManager → LSP: all 15 managers are substitutable
+  └─ IAddObligationRepo  → ISP: focused interface
+```
+
+---
+
+## C# Language Features
+
+### Delegates & Events
+- **Delegate** = type-safe function pointer. Holds reference to method(s) with matching signature.
+- **Multicast delegate** = points to multiple methods (`del += Method2`). Return value = last invoked method's.
+- **Events** = encapsulated delegates. Publisher/Subscriber pattern. Cannot be invoked outside declaring class.
+- **Lambda** = inline delegate: `Employee.Promotion(emplist, x => x.Experience >= 5);`
+
+### Generics
+Type-safe, reusable code without boxing/unboxing overhead:
+```csharp
+public static bool AreEqual<T>(T val1, T val2) => val1.Equals(val2);
+```
+
+### Key Differentiations
+
+| vs | Left | Right |
+|----|------|-------|
+| `var` vs `dynamic` | Compile-time type inference, fixed once assigned | Runtime type resolution, can change types |
+| `const` vs `readonly` | Compile-time constant, must initialize at declaration | Runtime constant, can initialize in constructor |
+| `out` vs `ref` | Must be assigned inside method, no need to initialize before | Must be initialized before passing |
+| `String` vs `StringBuilder` | Immutable (creates new object on each modification) | Mutable (modifies in-place, better for loops) |
+| `Dispose()` vs `Finalize()` | Deterministic cleanup, called by developer | Non-deterministic, called by GC |
+| `sealed` | Prevents inheritance / method override | — |
+| `partial` | Splits class definition across files | — |
+| Extension methods | Static methods on static class with `this` first param | Adds methods to types without modifying them |
+| `using` statement | Calls `Dispose()` automatically when block exits | Even on exceptions |
+
+---
+
+## Tradeoffs & Pitfalls
+
+- **Abstract class vs Interface:** Use abstract when classes are *related* and share state. Use interface for *capability contracts* across unrelated types.
+- **Over-applying SOLID:** Don't create 50 interfaces for a simple CRUD app. SOLID scales with complexity.
+- **God classes:** Violate SRP. Split when a class has >1 reason to change.
+- **Fat interfaces:** Violate ISP. Mock pain in tests is a smell.
+- **`new` keyword hiding:** Breaks polymorphism silently. Prefer `override`.
+- **Singleton abuse:** Makes testing hard, hides dependencies. Prefer DI-managed singletons.
+
+---
+
+## Interview Questions — Rapid Fire
+
+1. **What are the 4 pillars of OOP?** Encapsulation, Abstraction, Inheritance, Polymorphism.
+2. **Abstract class vs Interface — when to use each?** Abstract = shared implementation for related types. Interface = contract for unrelated types + multiple inheritance.
+3. **Can a class inherit multiple abstract classes?** No. Only one abstract class, but multiple interfaces.
+4. **Explain SOLID in one line each.** S=one reason to change, O=extend don't modify, L=subtypes are substitutable, I=small focused interfaces, D=depend on abstractions.
+5. **What is a delegate?** Type-safe function pointer. Enables passing methods as parameters.
+6. **`var` vs `dynamic`?** `var` = compile-time inference (fixed). `dynamic` = runtime resolution (flexible, no IntelliSense).
+7. **What is an extension method?** Static method in static class with `this` modifier on first param. Adds methods to existing types.
+8. **What is a sealed class?** Cannot be inherited. Used for security, preventing unintended derivation.
+9. **What is a partial class?** Class definition split across multiple files. Compiled as one class.
+10. **What is the `using` statement?** Ensures `Dispose()` is called even if exception thrown. Syntactic sugar for try/finally.
+
+---
+
+## Quick Reference
+
+```
+OOP:      Encapsulation | Abstraction | Inheritance | Polymorphism
+SOLID:    SRP | OCP | LSP | ISP | DIP
+CLASSES:  abstract (can't instantiate, can have impl) | sealed (can't inherit) | partial (split files) | static (no instances)
+METHODS:  virtual (overridable) | override (replaces) | new (hides) | abstract (must implement)
+TYPES:    var (compile-time) | dynamic (runtime) | const (compile constant) | readonly (runtime constant)
+DI:       Singleton (app) | Scoped (request) | Transient (each resolve)
+DELEGATES: Single | Multicast (+=) | Events (encapsulated delegates) | Lambda (inline)
+PATTERNS: Strategy (OCP) | Factory (object creation) | Repository (data abstraction)
+```
+# .NET APIs & Frameworks — Interview Preparation
+
+---
+
+## Core Concepts
+
+### ASP.NET Web API
+- Framework for building HTTP services (REST APIs) on .NET.
+- Uses standard HTTP verbs: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`.
+- Returns JSON/XML via content negotiation. No SOAP, no WSDL.
+- Can be hosted in IIS or self-hosted (OWIN, console app, Windows service).
+
+### REST Principles
+- **Resource-oriented:** URLs represent resources (`/api/v1/students`), not actions.
+- **Stateless:** Each request contains all info needed to process it.
+- **HTTP methods = operations:** GET (read), POST (create), PUT (replace), PATCH (partial update), DELETE (remove).
+- **Best practices:** Accept/respond with JSON, use plural nouns (`/cars` not `/car`), use HTTP status codes, version your API, use SSL/TLS.
+
+### PUT vs PATCH
+
+| | PUT | PATCH |
+|-|-----|-------|
+| **Semantics** | Replace the **entire** resource | Update **specific fields** only |
+| **Idempotent?** | Yes | Yes (in practice) |
+| **Payload** | Must send full object | Send only changed fields |
+| **Missing fields** | Set to null/default | Left unchanged |
+
+```csharp
+// PUT /api/users/1 — replaces the entire user
+[HttpPut("{id}")]
+public IActionResult UpdateUser(int id, [FromBody] UserDto dto)
+{
+    var user = _db.Users.Find(id);
+    if (user == null) return NotFound();
+
+    // ALL fields overwritten — if dto.Phone is null, user.Phone becomes null
+    user.Name = dto.Name;
+    user.Email = dto.Email;
+    user.Phone = dto.Phone;
+    _db.SaveChanges();
+    return Ok(user);
+}
+
+// PATCH /api/users/1 — updates only provided fields
+[HttpPatch("{id}")]
+public IActionResult PatchUser(int id, [FromBody] JsonPatchDocument<UserDto> patchDoc)
+{
+    var user = _db.Users.Find(id);
+    if (user == null) return NotFound();
+
+    var dto = _mapper.Map<UserDto>(user);
+    patchDoc.ApplyTo(dto);   // Only modifies fields specified in patch
+    _mapper.Map(dto, user);
+    _db.SaveChanges();
+    return Ok(user);
+}
+```
+
+```json
+// PATCH request body (JSON Patch format)
+[
+  { "op": "replace", "path": "/name", "value": "Alice Updated" },
+  { "op": "replace", "path": "/phone", "value": "+1-555-0123" }
+]
+```
+
+**When to use:** PUT for full form submissions (edit user profile). PATCH for partial updates (toggle status, update a single field).
+
+### Passing Data in GET Requests
+
+GET requests should NOT have a request body (though HTTP technically allows it, most servers/proxies ignore or reject it).
+
+**Recommended approaches:**
+
+```csharp
+// 1. Query parameters (most common)
+// GET /api/users?name=Alice&role=admin
+[HttpGet]
+public IActionResult GetUsers([FromQuery] string name, [FromQuery] string role)
+{
+    var users = _db.Users.Where(u => u.Name == name && u.Role == role);
+    return Ok(users);
+}
+
+// 2. Route parameters (for resource identification)
+// GET /api/users/42
+[HttpGet("{id}")]
+public IActionResult GetUser(int id) => Ok(_db.Users.Find(id));
+
+// 3. Complex filter object via query string
+// GET /api/users?Name=Alice&MinAge=25&SortBy=name
+[HttpGet]
+public IActionResult Search([FromQuery] UserFilter filter)
+{
+    // filter.Name, filter.MinAge, filter.SortBy all bound from query string
+    return Ok(_userService.Search(filter));
+}
+
+// 4. Headers (for metadata, not data)
+// Authorization: Bearer <token>
+// X-Tenant-Id: 42
+[HttpGet]
+public IActionResult GetData([FromHeader(Name = "X-Tenant-Id")] int tenantId) { }
+```
+
+**Why no body in GET?**
+- GET is for retrieval — should be cacheable and bookmarkable
+- Proxies, CDNs, and browsers may strip or ignore GET body
+- REST convention: data retrieval params go in URL
+
+**For complex search with many filters:** Use POST with a body to `/api/users/search` — this is an accepted REST exception.
+
+### HTTP Status Codes
+
+| Code | Name | Meaning | When to Use |
+|------|------|---------|-------------|
+| **200** | OK | Request succeeded | Successful GET, PUT, PATCH |
+| **201** | Created | Resource created | Successful POST (return with `Location` header) |
+| **204** | No Content | Success, no body | Successful DELETE |
+| **301** | Moved Permanently | Resource moved | URL changed permanently |
+| **304** | Not Modified | Cached version is current | Conditional GET (ETag/If-Modified-Since) |
+| **400** | Bad Request | Invalid input | Validation errors, malformed JSON |
+| **401** | Unauthorized | Not authenticated | Missing or invalid auth token |
+| **403** | Forbidden | Authenticated but not authorized | User lacks required role/permission |
+| **404** | Not Found | Resource doesn't exist | Invalid URL or missing resource |
+| **405** | Method Not Allowed | Wrong HTTP verb | POST to a GET-only endpoint |
+| **409** | Conflict | State conflict | Duplicate entry, concurrent update conflict |
+| **413** | Payload Too Large | Request body exceeds limit | File upload too big, JSON body too large |
+| **429** | Too Many Requests | Rate limit exceeded | API throttling |
+| **500** | Internal Server Error | Unhandled exception | Server-side bug |
+| **502** | Bad Gateway | Upstream server error | Reverse proxy can't reach backend |
+| **503** | Service Unavailable | Server overloaded/maintenance | Temporary downtime |
+
+**413 vs 404 — key difference:**
+
+| | 413 Payload Too Large | 404 Not Found |
+|-|----------------------|---------------|
+| **Category** | Client error (request issue) | Client error (routing issue) |
+| **Cause** | Request body exceeds server's size limit | URL doesn't match any resource/endpoint |
+| **Example** | Uploading a 500MB file when limit is 100MB | `GET /api/userz` (typo) or `GET /api/users/99999` (doesn't exist) |
+| **Fix** | Reduce payload size, increase server limit | Correct the URL or check if resource exists |
+
+```csharp
+// Configuring max request body size in .NET
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100 MB
+});
+
+// Returning proper status codes
+[HttpPost("upload")]
+public IActionResult Upload(IFormFile file)
+{
+    if (file.Length > 100_000_000)
+        return StatusCode(413, new { message = "File exceeds 100MB limit" });
+
+    return Ok();
+}
+
+[HttpGet("{id}")]
+public IActionResult GetUser(int id)
+{
+    var user = _db.Users.Find(id);
+    if (user == null)
+        return NotFound(new { message = $"User {id} not found" });  // 404
+
+    return Ok(user);  // 200
+}
+```
+
+### MVC vs Web API
+
+| | ASP.NET MVC | ASP.NET Web API |
+|-|------------|----------------|
+| Purpose | Web apps (HTML views) | HTTP services (raw data) |
+| Returns | Views + data | JSON/XML |
+| Content negotiation | No | Yes |
+| Use case | Server-rendered UI | APIs for any client |
+
+---
+
+## Deep Dive
+
+### Content Negotiation
+Two key headers drive format selection:
+- **`Accept`** — client tells server what format it wants back
+- **`Content-Type`** — client tells server what format it's *sending*
+- Accept header takes precedence when both are present.
+
+```
+// Force JSON for browser requests
+config.Formatters.JsonFormatter.SupportedMediaTypes
+    .Add(new MediaTypeHeaderValue("text/html"));
+
+// Remove XML formatter entirely
+config.Formatters.XmlFormatter.SupportedMediaTypes.Clear();
+
+// CamelCase JSON output
+config.Formatters.JsonFormatter.SerializerSettings.ContractResolver
+    = new CamelCasePropertyNamesContractResolver();
+```
+
+### Routing & Versioning
+- **Convention-based:** `config.Routes.MapHttpRoute("api/{controller}/{action}/{id}")`
+- **Attribute-based:** `[Route("api/v1/students")]`, `[RoutePrefix("students")]`
+- **Versioning via URI:** `/api/v1/students` vs `/api/v2/students`
+- Keep old versions alive to avoid breaking existing clients.
+
+### Parameter Binding
+| Type | Binding Source | Example |
+|------|---------------|---------|
+| Simple types (`int`, `string`, `bool`) | URL (query string) | `[FromUri]` |
+| Complex types (objects) | Request body | `[FromBody]` |
+
+### CORS (Cross-Origin Resource Sharing)
+Allows APIs to accept requests from different domains:
+```csharp
+// Global
+var cors = new EnableCorsAttribute("https://example.com", "*", "*");
+config.EnableCors(cors);
+
+// Controller-level
+[EnableCors(origins: "https://example.com", headers: "*", methods: "get,post")]
+public class TestController : ApiController { }
+```
+
+### Exception Handling
+
+| Approach | Scope | Use Case |
+|----------|-------|----------|
+| `HttpResponseException` | Single action | Throw specific HTTP status |
+| `ExceptionFilterAttribute` | Controller/action | Custom error filter |
+| Exception Handlers | Global | Catch-all handler |
+| `HttpError` + `CreateErrorResponse` | Any | Structured error response |
+
+Default for uncaught exceptions: **500 Internal Server Error**.
+
+### Return Types
+
+| Type | Description |
+|------|-------------|
+| `void` | Returns 204 No Content |
+| `HttpResponseMessage` | Full control over response |
+| `IHttpActionResult` | Calls `ExecuteAsync` internally |
+| Other types | Serialized to response body |
+
+### Bearer Tokens
+- Not stored server-side — issued to client, presented on each call.
+- Verified via OWIN host's protection key (machine key in web.config).
+- Valid as long as token hasn't expired.
+
+---
+
+## Entity Framework
+
+### Approaches
+
+| Approach | Start From | Best When |
+|----------|-----------|-----------|
+| **Code First** | C# classes → DB generated | Full code control, greenfield |
+| **Database First** | Existing DB → classes generated | Legacy DB, DBA-designed schema |
+| **Model First** | Visual designer (.edmx) → DB | Architect-led, rarely used |
+
+### Key Concepts
+- **ORM:** Maps C# objects to database tables automatically.
+- **POCO classes:** Plain C# classes used as entities.
+- **Proxy objects:** Auto-generated from POCOs for change tracking + lazy loading. Require: public class, not sealed, virtual properties, `ICollection<T>` for navigation.
+- **Entity states:** `Added`, `Modified`, `Deleted`, `Unchanged`, `Detached`.
+- **SQL injection protection:** EF generates parameterized queries by default.
+
+### EF vs Dapper
+
+| | Entity Framework | Dapper |
+|-|-----------------|--------|
+| Type | Full ORM | Micro ORM |
+| Features | Change tracking, lazy loading, migrations | Raw SQL, manual mapping |
+| Performance | Slower | Faster (2nd fastest ORM) |
+| Use case | Complex domain models | Performance-critical queries |
+
+### When to Use Raw SQL vs ORM
+
+| Scenario | Use | Why |
+|----------|-----|-----|
+| Standard CRUD operations | **ORM (EF)** | Clean, type-safe, change tracking handles inserts/updates |
+| Complex reports with many joins | **Raw SQL / Dapper** | ORM-generated SQL can be inefficient for complex queries |
+| Bulk insert/update (10K+ rows) | **Raw SQL** | EF tracks every entity — very slow for bulk operations |
+| Stored procedures | **Dapper or EF raw** | Both support it; Dapper is simpler |
+| Dynamic queries (runtime filters) | **ORM (EF LINQ)** | Compose `.Where()` chains dynamically |
+| Performance-critical hot paths | **Dapper / Raw SQL** | Full control, no ORM overhead |
+| Rapid prototyping / new features | **ORM (EF)** | Faster development, migrations, less boilerplate |
+| Legacy database with unusual schema | **Dapper** | No need to map every relationship |
+
+**Hybrid approach (recommended for production):**
+```csharp
+// Standard CRUD — use EF (clean, type-safe)
+public async Task<User> GetUser(int id)
+    => await _context.Users.FindAsync(id);
+
+public async Task CreateUser(User user)
+{
+    _context.Users.Add(user);
+    await _context.SaveChangesAsync();
+}
+
+// Complex reporting query — use Dapper (performance)
+public async Task<IEnumerable<SalesReport>> GetSalesReport(DateTime from, DateTime to)
+{
+    var sql = @"
+        SELECT p.Category, SUM(o.Amount) AS TotalSales, COUNT(*) AS OrderCount
+        FROM Orders o
+        JOIN Products p ON o.ProductId = p.Id
+        WHERE o.OrderDate BETWEEN @From AND @To
+        GROUP BY p.Category
+        ORDER BY TotalSales DESC";
+
+    using var conn = new SqlConnection(_connectionString);
+    return await conn.QueryAsync<SalesReport>(sql, new { From = from, To = to });
+}
+
+// Bulk insert — use raw SQL (EF would be 100x slower)
+public async Task BulkInsertLogs(List<LogEntry> logs)
+{
+    var dt = new DataTable();
+    dt.Columns.Add("Message"); dt.Columns.Add("Level"); dt.Columns.Add("Timestamp");
+    foreach (var log in logs)
+        dt.Rows.Add(log.Message, log.Level, log.Timestamp);
+
+    using var conn = new SqlConnection(_connectionString);
+    using var bulk = new SqlBulkCopy(conn) { DestinationTableName = "Logs" };
+    await conn.OpenAsync();
+    await bulk.WriteToServerAsync(dt);
+}
+```
+
+**Rule of thumb:** Start with EF for everything. Switch to Dapper/raw SQL for specific queries where EF is measurably slow (profiled, not guessed).
+
+---
+
+## WCF (Legacy — know for comparison)
+
+### WCF Endpoint = ABC
+- **A**ddress — WHERE (URL)
+- **B**inding — HOW (HTTP, TCP, Named Pipes, MSMQ)
+- **C**ontract — WHAT (Service/Operation/Data/Message/Fault contracts)
+
+### WCF vs Web API
+
+| | WCF | Web API |
+|-|-----|---------|
+| Weight | Heavy (WSDL/SOAP) | Lightweight (JSON/XML) |
+| Protocols | HTTP, TCP, Named Pipes, MSMQ | HTTP only |
+| Parsing | Complex SOAP parsing | Simple JSON/XML |
+| Use case | Enterprise interop, duplex | Modern REST APIs |
+
+### Message Exchange Patterns
+- **Request/Response** — default, synchronous
+- **One-Way** — fire and forget
+- **Duplex** — bidirectional (callbacks)
+
+---
+
+## Real-World Usage
+
+### LINQ
+
+**Core operators:**
+```csharp
+.Select(x => x.Name)              // Transform
+.Where(x => x.Age > 18)           // Filter
+.GroupBy(x => x.Category)         // Group
+.OrderBy(x => x.Price)            // Sort
+.Take(3)                          // Limit
+.First() / .FirstOrDefault()      // Single element
+.SelectMany(x => x)               // Flatten nested collections
+```
+
+**Deferred execution:** Queries don't run until enumerated (`ToList()`, `foreach`, `Count()`).
+
+```csharp
+int[] numbers = { 1, 2, 3, 4 };
+int max = 2;
+var large = numbers.Where(i => i > max); // Not executed yet
+max = 3;                                  // Closure captures variable
+var list = large.ToList();                // NOW executes — result: { 4 }
+```
+
+---
+
+## Tradeoffs & Pitfalls
+
+- **WCF vs Web API:** Use Web API for new projects. WCF only for existing enterprise systems needing non-HTTP protocols.
+- **Code First vs DB First:** Code First for greenfield. DB First for existing schemas. Don't fight the DBA.
+- **EF performance:** Use `.AsNoTracking()` for read-only queries. Use Dapper for hot paths.
+- **CORS misconfiguration:** Never use `*` for origins in production. Whitelist specific domains.
+- **Missing `[FromBody]`:** Complex types won't bind from query string without explicit annotation.
+- **Over-returning data:** Always select specific columns, use DTOs. Never expose entity models directly.
+
+---
+
+## Interview Questions — Rapid Fire
+
+1. **What is REST?** Client-server architecture using HTTP verbs on resources, stateless, returns JSON/XML.
+2. **Web API vs WCF?** Web API = lightweight HTTP/JSON. WCF = heavyweight multi-protocol SOAP.
+3. **What is content negotiation?** Server selects response format based on `Accept` header.
+4. **How to handle CORS?** Install CORS package, enable globally or per-controller with allowed origins.
+5. **FromUri vs FromBody?** Simple types → URI. Complex types → body.
+6. **What is EF?** ORM that maps C# objects to DB tables. Supports Code First, DB First, Model First.
+7. **EF vs Dapper?** EF = full ORM (change tracking, migrations). Dapper = micro ORM (raw SQL, faster).
+8. **What is OData?** Protocol for queryable REST APIs with standard CRUD operations.
+9. **API versioning approaches?** URI (`/v1/`), query string, header, media type.
+10. **Where is bearer token stored?** Client-side. Server verifies signature, doesn't store it.
+
+---
+
+## Quick Reference
+
+```
+REST:         GET=read  POST=create  PUT=replace  PATCH=partial  DELETE=remove
+HEADERS:      Accept (want) | Content-Type (sending) | Authorization: Bearer <token>
+BINDING:      Simple types → FromUri | Complex types → FromBody
+STATUS:       200=OK  201=Created  204=NoContent  400=BadRequest  401=Unauth  403=Forbidden  404=NotFound  413=TooLarge  429=RateLimit  500=Error
+METHODS:      GET=read  POST=create  PUT=replace(full)  PATCH=update(partial)  DELETE=remove
+GET DATA:     Query params (?key=val) | Route params (/id) | Headers | NO body
+CORS:         Install package → config.EnableCors() → [EnableCors] attribute
+EF:           Code First | DB First | Model First
+EF STATES:    Added | Modified | Deleted | Unchanged | Detached
+LINQ:         Select | Where | GroupBy | OrderBy | Take | First | SelectMany
+EXECUTION:    Deferred (lazy) until ToList()/foreach/Count()
+WCF ABC:      Address (where) + Binding (how) + Contract (what)
+DI:           Singleton | Scoped | Transient
+```
 # Security & Authentication — Interview Preparation
 
 ---
@@ -596,730 +1306,6 @@ THREATS:      SQL Injection | XSS | CSRF | Broken Auth | Data Exposure
 PREVENTION:   Parameterized queries | CSP headers | Anti-forgery tokens | HTTPS | Input validation
 HEADERS:      CSP | X-Content-Type-Options | X-Frame-Options | HSTS
 ```
-
-
-<!-- ===== FILE: backend/dotnet-apis.md ===== -->
-
-# .NET APIs & Frameworks — Interview Preparation
-
----
-
-## Core Concepts
-
-### ASP.NET Web API
-- Framework for building HTTP services (REST APIs) on .NET.
-- Uses standard HTTP verbs: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`.
-- Returns JSON/XML via content negotiation. No SOAP, no WSDL.
-- Can be hosted in IIS or self-hosted (OWIN, console app, Windows service).
-
-### REST Principles
-- **Resource-oriented:** URLs represent resources (`/api/v1/students`), not actions.
-- **Stateless:** Each request contains all info needed to process it.
-- **HTTP methods = operations:** GET (read), POST (create), PUT (replace), PATCH (partial update), DELETE (remove).
-- **Best practices:** Accept/respond with JSON, use plural nouns (`/cars` not `/car`), use HTTP status codes, version your API, use SSL/TLS.
-
-### PUT vs PATCH
-
-| | PUT | PATCH |
-|-|-----|-------|
-| **Semantics** | Replace the **entire** resource | Update **specific fields** only |
-| **Idempotent?** | Yes | Yes (in practice) |
-| **Payload** | Must send full object | Send only changed fields |
-| **Missing fields** | Set to null/default | Left unchanged |
-
-```csharp
-// PUT /api/users/1 — replaces the entire user
-[HttpPut("{id}")]
-public IActionResult UpdateUser(int id, [FromBody] UserDto dto)
-{
-    var user = _db.Users.Find(id);
-    if (user == null) return NotFound();
-
-    // ALL fields overwritten — if dto.Phone is null, user.Phone becomes null
-    user.Name = dto.Name;
-    user.Email = dto.Email;
-    user.Phone = dto.Phone;
-    _db.SaveChanges();
-    return Ok(user);
-}
-
-// PATCH /api/users/1 — updates only provided fields
-[HttpPatch("{id}")]
-public IActionResult PatchUser(int id, [FromBody] JsonPatchDocument<UserDto> patchDoc)
-{
-    var user = _db.Users.Find(id);
-    if (user == null) return NotFound();
-
-    var dto = _mapper.Map<UserDto>(user);
-    patchDoc.ApplyTo(dto);   // Only modifies fields specified in patch
-    _mapper.Map(dto, user);
-    _db.SaveChanges();
-    return Ok(user);
-}
-```
-
-```json
-// PATCH request body (JSON Patch format)
-[
-  { "op": "replace", "path": "/name", "value": "Alice Updated" },
-  { "op": "replace", "path": "/phone", "value": "+1-555-0123" }
-]
-```
-
-**When to use:** PUT for full form submissions (edit user profile). PATCH for partial updates (toggle status, update a single field).
-
-### Passing Data in GET Requests
-
-GET requests should NOT have a request body (though HTTP technically allows it, most servers/proxies ignore or reject it).
-
-**Recommended approaches:**
-
-```csharp
-// 1. Query parameters (most common)
-// GET /api/users?name=Alice&role=admin
-[HttpGet]
-public IActionResult GetUsers([FromQuery] string name, [FromQuery] string role)
-{
-    var users = _db.Users.Where(u => u.Name == name && u.Role == role);
-    return Ok(users);
-}
-
-// 2. Route parameters (for resource identification)
-// GET /api/users/42
-[HttpGet("{id}")]
-public IActionResult GetUser(int id) => Ok(_db.Users.Find(id));
-
-// 3. Complex filter object via query string
-// GET /api/users?Name=Alice&MinAge=25&SortBy=name
-[HttpGet]
-public IActionResult Search([FromQuery] UserFilter filter)
-{
-    // filter.Name, filter.MinAge, filter.SortBy all bound from query string
-    return Ok(_userService.Search(filter));
-}
-
-// 4. Headers (for metadata, not data)
-// Authorization: Bearer <token>
-// X-Tenant-Id: 42
-[HttpGet]
-public IActionResult GetData([FromHeader(Name = "X-Tenant-Id")] int tenantId) { }
-```
-
-**Why no body in GET?**
-- GET is for retrieval — should be cacheable and bookmarkable
-- Proxies, CDNs, and browsers may strip or ignore GET body
-- REST convention: data retrieval params go in URL
-
-**For complex search with many filters:** Use POST with a body to `/api/users/search` — this is an accepted REST exception.
-
-### HTTP Status Codes
-
-| Code | Name | Meaning | When to Use |
-|------|------|---------|-------------|
-| **200** | OK | Request succeeded | Successful GET, PUT, PATCH |
-| **201** | Created | Resource created | Successful POST (return with `Location` header) |
-| **204** | No Content | Success, no body | Successful DELETE |
-| **301** | Moved Permanently | Resource moved | URL changed permanently |
-| **304** | Not Modified | Cached version is current | Conditional GET (ETag/If-Modified-Since) |
-| **400** | Bad Request | Invalid input | Validation errors, malformed JSON |
-| **401** | Unauthorized | Not authenticated | Missing or invalid auth token |
-| **403** | Forbidden | Authenticated but not authorized | User lacks required role/permission |
-| **404** | Not Found | Resource doesn't exist | Invalid URL or missing resource |
-| **405** | Method Not Allowed | Wrong HTTP verb | POST to a GET-only endpoint |
-| **409** | Conflict | State conflict | Duplicate entry, concurrent update conflict |
-| **413** | Payload Too Large | Request body exceeds limit | File upload too big, JSON body too large |
-| **429** | Too Many Requests | Rate limit exceeded | API throttling |
-| **500** | Internal Server Error | Unhandled exception | Server-side bug |
-| **502** | Bad Gateway | Upstream server error | Reverse proxy can't reach backend |
-| **503** | Service Unavailable | Server overloaded/maintenance | Temporary downtime |
-
-**413 vs 404 — key difference:**
-
-| | 413 Payload Too Large | 404 Not Found |
-|-|----------------------|---------------|
-| **Category** | Client error (request issue) | Client error (routing issue) |
-| **Cause** | Request body exceeds server's size limit | URL doesn't match any resource/endpoint |
-| **Example** | Uploading a 500MB file when limit is 100MB | `GET /api/userz` (typo) or `GET /api/users/99999` (doesn't exist) |
-| **Fix** | Reduce payload size, increase server limit | Correct the URL or check if resource exists |
-
-```csharp
-// Configuring max request body size in .NET
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100 MB
-});
-
-// Returning proper status codes
-[HttpPost("upload")]
-public IActionResult Upload(IFormFile file)
-{
-    if (file.Length > 100_000_000)
-        return StatusCode(413, new { message = "File exceeds 100MB limit" });
-
-    return Ok();
-}
-
-[HttpGet("{id}")]
-public IActionResult GetUser(int id)
-{
-    var user = _db.Users.Find(id);
-    if (user == null)
-        return NotFound(new { message = $"User {id} not found" });  // 404
-
-    return Ok(user);  // 200
-}
-```
-
-### MVC vs Web API
-
-| | ASP.NET MVC | ASP.NET Web API |
-|-|------------|----------------|
-| Purpose | Web apps (HTML views) | HTTP services (raw data) |
-| Returns | Views + data | JSON/XML |
-| Content negotiation | No | Yes |
-| Use case | Server-rendered UI | APIs for any client |
-
----
-
-## Deep Dive
-
-### Content Negotiation
-Two key headers drive format selection:
-- **`Accept`** — client tells server what format it wants back
-- **`Content-Type`** — client tells server what format it's *sending*
-- Accept header takes precedence when both are present.
-
-```
-// Force JSON for browser requests
-config.Formatters.JsonFormatter.SupportedMediaTypes
-    .Add(new MediaTypeHeaderValue("text/html"));
-
-// Remove XML formatter entirely
-config.Formatters.XmlFormatter.SupportedMediaTypes.Clear();
-
-// CamelCase JSON output
-config.Formatters.JsonFormatter.SerializerSettings.ContractResolver
-    = new CamelCasePropertyNamesContractResolver();
-```
-
-### Routing & Versioning
-- **Convention-based:** `config.Routes.MapHttpRoute("api/{controller}/{action}/{id}")`
-- **Attribute-based:** `[Route("api/v1/students")]`, `[RoutePrefix("students")]`
-- **Versioning via URI:** `/api/v1/students` vs `/api/v2/students`
-- Keep old versions alive to avoid breaking existing clients.
-
-### Parameter Binding
-| Type | Binding Source | Example |
-|------|---------------|---------|
-| Simple types (`int`, `string`, `bool`) | URL (query string) | `[FromUri]` |
-| Complex types (objects) | Request body | `[FromBody]` |
-
-### CORS (Cross-Origin Resource Sharing)
-Allows APIs to accept requests from different domains:
-```csharp
-// Global
-var cors = new EnableCorsAttribute("https://example.com", "*", "*");
-config.EnableCors(cors);
-
-// Controller-level
-[EnableCors(origins: "https://example.com", headers: "*", methods: "get,post")]
-public class TestController : ApiController { }
-```
-
-### Exception Handling
-
-| Approach | Scope | Use Case |
-|----------|-------|----------|
-| `HttpResponseException` | Single action | Throw specific HTTP status |
-| `ExceptionFilterAttribute` | Controller/action | Custom error filter |
-| Exception Handlers | Global | Catch-all handler |
-| `HttpError` + `CreateErrorResponse` | Any | Structured error response |
-
-Default for uncaught exceptions: **500 Internal Server Error**.
-
-### Return Types
-
-| Type | Description |
-|------|-------------|
-| `void` | Returns 204 No Content |
-| `HttpResponseMessage` | Full control over response |
-| `IHttpActionResult` | Calls `ExecuteAsync` internally |
-| Other types | Serialized to response body |
-
-### Bearer Tokens
-- Not stored server-side — issued to client, presented on each call.
-- Verified via OWIN host's protection key (machine key in web.config).
-- Valid as long as token hasn't expired.
-
----
-
-## Entity Framework
-
-### Approaches
-
-| Approach | Start From | Best When |
-|----------|-----------|-----------|
-| **Code First** | C# classes → DB generated | Full code control, greenfield |
-| **Database First** | Existing DB → classes generated | Legacy DB, DBA-designed schema |
-| **Model First** | Visual designer (.edmx) → DB | Architect-led, rarely used |
-
-### Key Concepts
-- **ORM:** Maps C# objects to database tables automatically.
-- **POCO classes:** Plain C# classes used as entities.
-- **Proxy objects:** Auto-generated from POCOs for change tracking + lazy loading. Require: public class, not sealed, virtual properties, `ICollection<T>` for navigation.
-- **Entity states:** `Added`, `Modified`, `Deleted`, `Unchanged`, `Detached`.
-- **SQL injection protection:** EF generates parameterized queries by default.
-
-### EF vs Dapper
-
-| | Entity Framework | Dapper |
-|-|-----------------|--------|
-| Type | Full ORM | Micro ORM |
-| Features | Change tracking, lazy loading, migrations | Raw SQL, manual mapping |
-| Performance | Slower | Faster (2nd fastest ORM) |
-| Use case | Complex domain models | Performance-critical queries |
-
-### When to Use Raw SQL vs ORM
-
-| Scenario | Use | Why |
-|----------|-----|-----|
-| Standard CRUD operations | **ORM (EF)** | Clean, type-safe, change tracking handles inserts/updates |
-| Complex reports with many joins | **Raw SQL / Dapper** | ORM-generated SQL can be inefficient for complex queries |
-| Bulk insert/update (10K+ rows) | **Raw SQL** | EF tracks every entity — very slow for bulk operations |
-| Stored procedures | **Dapper or EF raw** | Both support it; Dapper is simpler |
-| Dynamic queries (runtime filters) | **ORM (EF LINQ)** | Compose `.Where()` chains dynamically |
-| Performance-critical hot paths | **Dapper / Raw SQL** | Full control, no ORM overhead |
-| Rapid prototyping / new features | **ORM (EF)** | Faster development, migrations, less boilerplate |
-| Legacy database with unusual schema | **Dapper** | No need to map every relationship |
-
-**Hybrid approach (recommended for production):**
-```csharp
-// Standard CRUD — use EF (clean, type-safe)
-public async Task<User> GetUser(int id)
-    => await _context.Users.FindAsync(id);
-
-public async Task CreateUser(User user)
-{
-    _context.Users.Add(user);
-    await _context.SaveChangesAsync();
-}
-
-// Complex reporting query — use Dapper (performance)
-public async Task<IEnumerable<SalesReport>> GetSalesReport(DateTime from, DateTime to)
-{
-    var sql = @"
-        SELECT p.Category, SUM(o.Amount) AS TotalSales, COUNT(*) AS OrderCount
-        FROM Orders o
-        JOIN Products p ON o.ProductId = p.Id
-        WHERE o.OrderDate BETWEEN @From AND @To
-        GROUP BY p.Category
-        ORDER BY TotalSales DESC";
-
-    using var conn = new SqlConnection(_connectionString);
-    return await conn.QueryAsync<SalesReport>(sql, new { From = from, To = to });
-}
-
-// Bulk insert — use raw SQL (EF would be 100x slower)
-public async Task BulkInsertLogs(List<LogEntry> logs)
-{
-    var dt = new DataTable();
-    dt.Columns.Add("Message"); dt.Columns.Add("Level"); dt.Columns.Add("Timestamp");
-    foreach (var log in logs)
-        dt.Rows.Add(log.Message, log.Level, log.Timestamp);
-
-    using var conn = new SqlConnection(_connectionString);
-    using var bulk = new SqlBulkCopy(conn) { DestinationTableName = "Logs" };
-    await conn.OpenAsync();
-    await bulk.WriteToServerAsync(dt);
-}
-```
-
-**Rule of thumb:** Start with EF for everything. Switch to Dapper/raw SQL for specific queries where EF is measurably slow (profiled, not guessed).
-
----
-
-## WCF (Legacy — know for comparison)
-
-### WCF Endpoint = ABC
-- **A**ddress — WHERE (URL)
-- **B**inding — HOW (HTTP, TCP, Named Pipes, MSMQ)
-- **C**ontract — WHAT (Service/Operation/Data/Message/Fault contracts)
-
-### WCF vs Web API
-
-| | WCF | Web API |
-|-|-----|---------|
-| Weight | Heavy (WSDL/SOAP) | Lightweight (JSON/XML) |
-| Protocols | HTTP, TCP, Named Pipes, MSMQ | HTTP only |
-| Parsing | Complex SOAP parsing | Simple JSON/XML |
-| Use case | Enterprise interop, duplex | Modern REST APIs |
-
-### Message Exchange Patterns
-- **Request/Response** — default, synchronous
-- **One-Way** — fire and forget
-- **Duplex** — bidirectional (callbacks)
-
----
-
-## Real-World Usage
-
-### LINQ
-
-**Core operators:**
-```csharp
-.Select(x => x.Name)              // Transform
-.Where(x => x.Age > 18)           // Filter
-.GroupBy(x => x.Category)         // Group
-.OrderBy(x => x.Price)            // Sort
-.Take(3)                          // Limit
-.First() / .FirstOrDefault()      // Single element
-.SelectMany(x => x)               // Flatten nested collections
-```
-
-**Deferred execution:** Queries don't run until enumerated (`ToList()`, `foreach`, `Count()`).
-
-```csharp
-int[] numbers = { 1, 2, 3, 4 };
-int max = 2;
-var large = numbers.Where(i => i > max); // Not executed yet
-max = 3;                                  // Closure captures variable
-var list = large.ToList();                // NOW executes — result: { 4 }
-```
-
----
-
-## Tradeoffs & Pitfalls
-
-- **WCF vs Web API:** Use Web API for new projects. WCF only for existing enterprise systems needing non-HTTP protocols.
-- **Code First vs DB First:** Code First for greenfield. DB First for existing schemas. Don't fight the DBA.
-- **EF performance:** Use `.AsNoTracking()` for read-only queries. Use Dapper for hot paths.
-- **CORS misconfiguration:** Never use `*` for origins in production. Whitelist specific domains.
-- **Missing `[FromBody]`:** Complex types won't bind from query string without explicit annotation.
-- **Over-returning data:** Always select specific columns, use DTOs. Never expose entity models directly.
-
----
-
-## Interview Questions — Rapid Fire
-
-1. **What is REST?** Client-server architecture using HTTP verbs on resources, stateless, returns JSON/XML.
-2. **Web API vs WCF?** Web API = lightweight HTTP/JSON. WCF = heavyweight multi-protocol SOAP.
-3. **What is content negotiation?** Server selects response format based on `Accept` header.
-4. **How to handle CORS?** Install CORS package, enable globally or per-controller with allowed origins.
-5. **FromUri vs FromBody?** Simple types → URI. Complex types → body.
-6. **What is EF?** ORM that maps C# objects to DB tables. Supports Code First, DB First, Model First.
-7. **EF vs Dapper?** EF = full ORM (change tracking, migrations). Dapper = micro ORM (raw SQL, faster).
-8. **What is OData?** Protocol for queryable REST APIs with standard CRUD operations.
-9. **API versioning approaches?** URI (`/v1/`), query string, header, media type.
-10. **Where is bearer token stored?** Client-side. Server verifies signature, doesn't store it.
-
----
-
-## Quick Reference
-
-```
-REST:         GET=read  POST=create  PUT=replace  PATCH=partial  DELETE=remove
-HEADERS:      Accept (want) | Content-Type (sending) | Authorization: Bearer <token>
-BINDING:      Simple types → FromUri | Complex types → FromBody
-STATUS:       200=OK  201=Created  204=NoContent  400=BadRequest  401=Unauth  403=Forbidden  404=NotFound  413=TooLarge  429=RateLimit  500=Error
-METHODS:      GET=read  POST=create  PUT=replace(full)  PATCH=update(partial)  DELETE=remove
-GET DATA:     Query params (?key=val) | Route params (/id) | Headers | NO body
-CORS:         Install package → config.EnableCors() → [EnableCors] attribute
-EF:           Code First | DB First | Model First
-EF STATES:    Added | Modified | Deleted | Unchanged | Detached
-LINQ:         Select | Where | GroupBy | OrderBy | Take | First | SelectMany
-EXECUTION:    Deferred (lazy) until ToList()/foreach/Count()
-WCF ABC:      Address (where) + Binding (how) + Contract (what)
-DI:           Singleton | Scoped | Transient
-```
-
-
-<!-- ===== FILE: backend/oop-solid.md ===== -->
-
-# OOP & SOLID Principles — Interview Preparation
-
----
-
-## Core Concepts
-
-### Four Pillars of OOP
-
-| Pillar | Definition | C# Mechanism |
-|--------|-----------|--------------|
-| **Encapsulation** | Bundle data + methods, hide internals | Access modifiers (`private`, `protected`, `public`) |
-| **Abstraction** | Expose only what's necessary | Abstract classes, interfaces |
-| **Inheritance** | Derive new classes from existing ones | `: BaseClass`, `: IInterface` |
-| **Polymorphism** | Same interface, different behavior | `virtual`/`override`, interfaces |
-
-### Abstract Class vs Interface
-
-| | Abstract Class | Interface |
-|-|---------------|-----------|
-| Instantiation | Cannot | Cannot |
-| Constructor | Yes | No |
-| Fields/state | Yes | No (until C# 8 default methods) |
-| Access modifiers | Yes | No (all public implicitly) |
-| Multiple inheritance | No (single only) | Yes (multiple interfaces) |
-| Method implementation | Can have both abstract and concrete | Only signatures (pre-C# 8) |
-| When to use | Related classes sharing common logic | Unrelated classes sharing a contract |
-
-**Abstract class example — shared base for employees:**
-```csharp
-public abstract class BaseEmployee
-{
-    public int ID { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string GetFullName() => FirstName + " " + LastName;
-    public abstract int GetMonthlySalary(); // subclass MUST implement
-}
-
-public class FullTimeEmployee : BaseEmployee
-{
-    public int AnnualSalary { get; set; }
-    public override int GetMonthlySalary() => AnnualSalary / 12;
-}
-
-public class PartTimeEmployee : BaseEmployee
-{
-    public int HourlyPay { get; set; }
-    public int TotalHoursWorked { get; set; }
-    public override int GetMonthlySalary() => HourlyPay * TotalHoursWorked;
-}
-```
-
-**Interface example — unrelated capabilities:**
-```csharp
-interface IStore { void Read(); void Write(); }
-interface ICompress { void Compress(); void Decompress(); }
-
-public class Document : IStore, ICompress
-{
-    public void Read() { /* ... */ }
-    public void Write() { /* ... */ }
-    public void Compress() { /* ... */ }
-    public void Decompress() { /* ... */ }
-}
-```
-
-**Same method in two interfaces?** Use explicit implementation: `ISupplier.MethodName()`.
-
-### Static Class
-- Cannot be instantiated. All members must be `static`.
-- Is implicitly `sealed`. No instance constructors.
-- Use for stateless utility methods (e.g., `TemperatureConverter.CelsiusToFahrenheit()`).
-- **Singleton ≠ Static class:** Singleton allows one instance with state; static class has no instances.
-
-### `virtual` / `override` / `new`
-- `virtual` → base class declares method can be overridden
-- `override` → derived class replaces base implementation (runtime polymorphism)
-- `new` → derived class *hides* base method (compile-time, NOT polymorphism)
-
-```csharp
-A obj = new B();
-obj.Show(); // override → calls B.Show() | new → calls A.Show()
-```
-
----
-
-## Deep Dive
-
-### SOLID Principles
-
-#### S — Single Responsibility Principle (SRP)
-> A class should have one, and only one, reason to change.
-
-**Violation:** `Customer` class doing both DB operations AND logging.
-**Fix:** Extract logging into a separate `Logger` class.
-
-**Real-world example** — layered architecture:
-```
-Service/     → HTTP handling, routing, DI config
-Bridge/      → Business orchestration, external calls
-Core/        → Interfaces, models, enums
-Data/        → Database access, query building
-```
-Each layer has ONE reason to change. Database migration → only touches `Data`.
-
-#### O — Open/Closed Principle (OCP)
-> Open for extension, closed for modification.
-
-**Violation:** Growing `if/else` chains when new types are added.
-**Fix:** Strategy pattern — each behavior is a class implementing a common interface.
-
-```csharp
-// Instead of: if (type == "amend") ... else if (type == "copy") ...
-
-public interface ICopyOperationStrategy
-{
-    Task CopyVersion(JObject payload);
-}
-
-public class AmendContract : ICopyOperationStrategy { /* amend logic */ }
-public class CopyContract : ICopyOperationStrategy { /* copy logic */ }
-// New operation? Create new class. Existing code untouched.
-```
-
-**Factory resolves the right strategy:**
-```csharp
-public ICopyOperationStrategy Create(string operation) => operation switch
-{
-    "amend" => _sp.GetService<IAmendContract>(),
-    "clone" => _sp.GetService<ICopyContract>(),
-    _ => throw new NotImplementedException()
-};
-```
-
-#### L — Liskov Substitution Principle (LSP)
-> Subtypes must be substitutable for their base types without breaking behavior.
-
-**Violation:** `Enquiry : Customer` throws `NotImplementedException` on `Add()`.
-**Fix:** Split into `IDiscount` and `IDatabase` interfaces. `Enquiry` implements only `IDiscount`.
-
-**Behavioral contract rules:**
-- Preconditions cannot be strengthened
-- Postconditions cannot be weakened
-- Invariants must be preserved
-- No `NotImplementedException` in inherited methods
-
-#### I — Interface Segregation Principle (ISP)
-> No client should be forced to depend on methods it doesn't use.
-
-**Bad — fat interface:**
-```csharp
-public interface IBaseRepository  // 13+ methods mixing headers, config, module ID
-{
-    Dictionary<string, string> GetLeoHeaders();
-    Task<string> GetPlatformConfigurationValue(string key);
-    string GetSubTypeId();
-    // ... 10 more unrelated methods
-}
-```
-
-**Good — focused interfaces:**
-```csharp
-public interface IAddObligationsRepository
-{
-    Task<Maybe<JObject>> AddBulkObligationsByModelName(JToken request);
-}
-public interface IGetObligationsRepository
-{
-    Task<Maybe<JToken>> GetObligations(JObject requestObj, int limit, int skip);
-}
-public interface IDeleteObligationsRepository
-{
-    Task<Maybe<JObject>> DeleteBulkObligations(List<string> _ids);
-}
-```
-
-#### D — Dependency Inversion Principle (DIP)
-> High-level modules should not depend on low-level modules. Both should depend on abstractions.
-
-**DIP ≠ DI:** DIP is a design principle (depend on abstractions). DI is a technique (inject at runtime).
-
-**Flow:**
-```
-Controller (high-level) → depends on → ILineItemBridgeRepository (abstraction)
-                                              ↑ implements
-                          LineItemBridgeRepository (low-level, knows about DB)
-```
-
-**Wiring at composition root (Startup.cs):**
-```csharp
-services.TryAddScoped<ILineItemBridgeRepository, LineItemBridgeRepository>();
-services.TryAddScoped<IBaseRepository, BaseRepository>();
-```
-
-**DI Lifetimes:**
-
-| Lifetime | Behavior |
-|----------|----------|
-| `Singleton` | One instance for entire app lifetime |
-| `Scoped` | One instance per HTTP request |
-| `Transient` | New instance every time it's requested |
-
-### How SOLID Works Together
-```
-Controller               → SRP: only handles HTTP
-  ├─ IWorkflowFactory    → DIP: depends on abstraction
-  │   └─ WorkflowFactory → OCP: new workflows = new classes
-  │       └─ IWorkFlowManager → LSP: all 15 managers are substitutable
-  └─ IAddObligationRepo  → ISP: focused interface
-```
-
----
-
-## C# Language Features
-
-### Delegates & Events
-- **Delegate** = type-safe function pointer. Holds reference to method(s) with matching signature.
-- **Multicast delegate** = points to multiple methods (`del += Method2`). Return value = last invoked method's.
-- **Events** = encapsulated delegates. Publisher/Subscriber pattern. Cannot be invoked outside declaring class.
-- **Lambda** = inline delegate: `Employee.Promotion(emplist, x => x.Experience >= 5);`
-
-### Generics
-Type-safe, reusable code without boxing/unboxing overhead:
-```csharp
-public static bool AreEqual<T>(T val1, T val2) => val1.Equals(val2);
-```
-
-### Key Differentiations
-
-| vs | Left | Right |
-|----|------|-------|
-| `var` vs `dynamic` | Compile-time type inference, fixed once assigned | Runtime type resolution, can change types |
-| `const` vs `readonly` | Compile-time constant, must initialize at declaration | Runtime constant, can initialize in constructor |
-| `out` vs `ref` | Must be assigned inside method, no need to initialize before | Must be initialized before passing |
-| `String` vs `StringBuilder` | Immutable (creates new object on each modification) | Mutable (modifies in-place, better for loops) |
-| `Dispose()` vs `Finalize()` | Deterministic cleanup, called by developer | Non-deterministic, called by GC |
-| `sealed` | Prevents inheritance / method override | — |
-| `partial` | Splits class definition across files | — |
-| Extension methods | Static methods on static class with `this` first param | Adds methods to types without modifying them |
-| `using` statement | Calls `Dispose()` automatically when block exits | Even on exceptions |
-
----
-
-## Tradeoffs & Pitfalls
-
-- **Abstract class vs Interface:** Use abstract when classes are *related* and share state. Use interface for *capability contracts* across unrelated types.
-- **Over-applying SOLID:** Don't create 50 interfaces for a simple CRUD app. SOLID scales with complexity.
-- **God classes:** Violate SRP. Split when a class has >1 reason to change.
-- **Fat interfaces:** Violate ISP. Mock pain in tests is a smell.
-- **`new` keyword hiding:** Breaks polymorphism silently. Prefer `override`.
-- **Singleton abuse:** Makes testing hard, hides dependencies. Prefer DI-managed singletons.
-
----
-
-## Interview Questions — Rapid Fire
-
-1. **What are the 4 pillars of OOP?** Encapsulation, Abstraction, Inheritance, Polymorphism.
-2. **Abstract class vs Interface — when to use each?** Abstract = shared implementation for related types. Interface = contract for unrelated types + multiple inheritance.
-3. **Can a class inherit multiple abstract classes?** No. Only one abstract class, but multiple interfaces.
-4. **Explain SOLID in one line each.** S=one reason to change, O=extend don't modify, L=subtypes are substitutable, I=small focused interfaces, D=depend on abstractions.
-5. **What is a delegate?** Type-safe function pointer. Enables passing methods as parameters.
-6. **`var` vs `dynamic`?** `var` = compile-time inference (fixed). `dynamic` = runtime resolution (flexible, no IntelliSense).
-7. **What is an extension method?** Static method in static class with `this` modifier on first param. Adds methods to existing types.
-8. **What is a sealed class?** Cannot be inherited. Used for security, preventing unintended derivation.
-9. **What is a partial class?** Class definition split across multiple files. Compiled as one class.
-10. **What is the `using` statement?** Ensures `Dispose()` is called even if exception thrown. Syntactic sugar for try/finally.
-
----
-
-## Quick Reference
-
-```
-OOP:      Encapsulation | Abstraction | Inheritance | Polymorphism
-SOLID:    SRP | OCP | LSP | ISP | DIP
-CLASSES:  abstract (can't instantiate, can have impl) | sealed (can't inherit) | partial (split files) | static (no instances)
-METHODS:  virtual (overridable) | override (replaces) | new (hides) | abstract (must implement)
-TYPES:    var (compile-time) | dynamic (runtime) | const (compile constant) | readonly (runtime constant)
-DI:       Singleton (app) | Scoped (request) | Transient (each resolve)
-DELEGATES: Single | Multicast (+=) | Events (encapsulated delegates) | Lambda (inline)
-PATTERNS: Strategy (OCP) | Factory (object creation) | Repository (data abstraction)
-```
-
-
-<!-- ===== FILE: backend/performance.md ===== -->
-
 # Performance Optimization — Interview Preparation
 
 ---
@@ -1401,745 +1387,597 @@ TOOLS:     New Relic | SSMS Execution Plan | SQL Profiler | DevTools | Load test
 INCIDENT:  Assess → Communicate → Isolate → Fix → Document → Prevent
 ```
 
+---
 
-<!-- ===== FILE: coding/coding-problems.md ===== -->
+## Senior-Level Backend Concepts Checklist
 
-# Coding Problems — Interview Preparation
+### Distributed Systems
+- CAP theorem, eventual consistency, strong consistency, partition tolerance
+
+### Database Concepts
+- Indexing, cardinality, selectivity, optimistic locking, pessimistic locking, connection pooling
+
+### Scalability
+- Horizontal scaling, load balancing, caching, sharding, partitioning
+
+### Event-Driven Architecture
+- Kafka, retries, DLQ, event ordering, consumer groups, backpressure
+
+### Reliability Patterns
+- Circuit breakers, retries, saga pattern, outbox pattern, idempotency
+
+### Performance
+- Redis caching, rate limiting, query optimization, batching, async processing
+# JavaScript — Interview Preparation
 
 ---
 
-## Problem 1: Two Sum / Pair Sum
+## Core Concepts
 
-**Pattern:** Hash Set lookup
-**Difficulty:** Easy
+### CSS Specificity
 
-### Approach
-For each number, check if `target - num` exists in a set. If yes, pair found. Otherwise, add `num` to set.
+Specificity determines which CSS rule wins when multiple rules target the same element.
 
-### Code (JavaScript)
+**Hierarchy (highest → lowest):**
+```
+!important  >  Inline styles  >  ID selectors  >  Class/Attribute/Pseudo-class  >  Element/Pseudo-element  >  Universal (*)
+```
+
+**Specificity Calculation:** Each selector gets a score as `(a, b, c, d)`:
+
+| Component | Selector Type | Example | Weight |
+|-----------|--------------|---------|--------|
+| `a` | Inline styles | `style="color: red"` | 1,0,0,0 |
+| `b` | ID selectors | `#header` | 0,1,0,0 |
+| `c` | Classes, attributes, pseudo-classes | `.nav`, `[type="text"]`, `:hover` | 0,0,1,0 |
+| `d` | Elements, pseudo-elements | `div`, `::before` | 0,0,0,1 |
+
+**Examples:**
+```css
+/* Specificity: 0,0,0,1 */
+p { color: blue; }
+
+/* Specificity: 0,0,1,0 — wins over element */
+.text { color: green; }
+
+/* Specificity: 0,1,0,0 — wins over class */
+#main { color: red; }
+
+/* Specificity: 0,1,1,1 — highest combined */
+#main .text p { color: purple; }
+
+/* !important overrides everything (avoid in production) */
+p { color: orange !important; }
+```
+
+**Resolution order when specificity is equal:** Last rule in source order wins.
+
+**Best Practices:**
+- Avoid `!important` — makes debugging/overriding painful
+- Prefer classes over IDs for styling (lower specificity = easier to override)
+- Use BEM naming convention (`.block__element--modifier`) to avoid specificity wars
+- Inline styles should be reserved for dynamic/JS-driven styles only
+
+---
+
+### `var` vs `let` vs `const`
+
+| | `var` | `let` | `const` |
+|-|-------|-------|---------|
+| Scope | Function | Block | Block |
+| Hoisting | Yes (initialized as `undefined`) | Yes (TDZ — not accessible) | Yes (TDZ) |
+| Re-declaration | Yes | No | No |
+| Re-assignment | Yes | Yes | No |
+
+### Closures
+A closure is a function that retains access to its outer scope's variables even after the outer function has returned.
+
 ```javascript
-function hasPairSum(arr, target) {
-  const seen = new Set();
-  for (const num of arr) {
-    if (seen.has(target - num)) return true;
-    seen.add(num);
-  }
-  return false;
+function createCounter() {
+  let count = 0;
+  return {
+    increment: () => ++count,
+    getCount: () => count
+  };
+}
+const counter = createCounter();
+counter.increment(); // 1 — `count` persists via closure
+```
+
+**Use cases:** Data privacy, factory functions, partial application, memoization.
+
+### `call`, `apply`, `bind`
+
+| Method | Syntax | Invocation |
+|--------|--------|-----------|
+| `call` | `fn.call(thisArg, arg1, arg2)` | Immediate, args individually |
+| `apply` | `fn.apply(thisArg, [args])` | Immediate, args as array |
+| `bind` | `fn.bind(thisArg, arg1)` | Returns new function |
+
+```javascript
+const obj = { name: 'Alice' };
+function greet(greeting) { return `${greeting}, ${this.name}`; }
+
+greet.call(obj, 'Hello');    // "Hello, Alice"
+greet.apply(obj, ['Hello']); // "Hello, Alice"
+const bound = greet.bind(obj);
+bound('Hello');              // "Hello, Alice"
+```
+
+### Prototypes & Custom Methods
+Every object has a `__proto__` chain. Add custom methods to built-in types via prototype:
+```javascript
+Array.prototype.last = function() { return this[this.length - 1]; };
+[1, 2, 3].last(); // 3
+```
+
+### Object Immutability
+
+| Method | Prevents | Add | Delete | Modify |
+|--------|----------|-----|--------|--------|
+| `Object.preventExtensions()` | Adding properties | No | Yes | Yes |
+| `Object.seal()` | Adding/deleting | No | No | Yes |
+| `Object.freeze()` | All mutations (shallow) | No | No | No |
+
+For deep freeze, recursively freeze nested objects.
+
+---
+
+## Deep Dive
+
+### Event Loop
+JavaScript is single-threaded. The event loop manages async execution:
+
+```
+┌──────────────┐
+│  Call Stack   │ ← Synchronous code executes here
+└──────┬───────┘
+       ↓
+┌──────────────┐
+│  Microtask Q  │ ← Promise callbacks, queueMicrotask, MutationObserver
+└──────┬───────┘
+       ↓
+┌──────────────┐
+│  Macrotask Q  │ ← setTimeout, setInterval, I/O, UI rendering
+└──────────────┘
+```
+
+**Order:** Call stack empties → ALL microtasks → ONE macrotask → repeat.
+
+```javascript
+console.log('1');
+setTimeout(() => console.log('2'), 0);
+Promise.resolve().then(() => console.log('3'));
+console.log('4');
+// Output: 1, 4, 3, 2
+```
+
+### Event Loop Execution Order — Async Interview Question
+
+#### Code Example
+
+```javascript
+console.log("A");
+
+setTimeout(() => console.log("B"), 0);
+
+Promise.resolve().then(() => {
+  console.log("C");
+
+  setTimeout(() => console.log("D"), 0);
+});
+
+(async function () {
+  console.log("E");
+
+  await Promise.resolve();
+
+  console.log("F");
+})();
+
+console.log("G");
+```
+
+#### Output
+
+```txt
+A
+E
+G
+C
+F
+B
+D
+```
+
+#### Step-by-Step Execution
+
+**1. Synchronous Execution (Call Stack)**
+
+JavaScript first executes all synchronous code:
+
+```javascript
+console.log("A"); // A
+
+(async function () {
+  console.log("E"); // E
+})();
+
+console.log("G"); // G
+```
+
+Current Output:
+
+```txt
+A
+E
+G
+```
+
+**2. Macrotask Queue (`setTimeout`)**
+
+```javascript
+setTimeout(() => console.log("B"), 0);
+```
+
+`setTimeout` callbacks are placed in the **macrotask queue**.
+
+So `B` waits until:
+- synchronous code finishes
+- all microtasks finish
+
+**3. Microtask Queue (`Promise.then`)**
+
+```javascript
+Promise.resolve().then(() => {
+  console.log("C");
+
+  setTimeout(() => console.log("D"), 0);
+});
+```
+
+`.then()` callbacks are placed in the **microtask queue**.
+
+So after synchronous execution completes:
+- `C` executes
+- `D` gets scheduled into macrotask queue
+
+**4. `async/await` Behavior**
+
+```javascript
+(async function () {
+  console.log("E");
+
+  await Promise.resolve();
+
+  console.log("F");
+})();
+```
+
+Important behavior:
+- code before `await` executes synchronously
+- code after `await` becomes a microtask
+
+So:
+- `E` prints immediately
+- `F` executes later in the microtask queue
+
+#### Final Execution Order
+
+**Synchronous Phase**
+
+```txt
+A
+E
+G
+```
+
+**Microtasks**
+
+```txt
+C
+F
+```
+
+**Macrotasks**
+
+```txt
+B
+D
+```
+
+#### Core Rule
+
+JavaScript execution priority:
+
+```txt
+1. Call Stack (Synchronous code)
+2. Microtask Queue (Promises, async/await)
+3. Macrotask Queue (setTimeout, setInterval)
+```
+
+#### Important Interview Notes
+
+**Microtasks include:**
+- `Promise.then`
+- `catch`
+- `finally`
+- `await`
+- `queueMicrotask`
+
+**Macrotasks include:**
+- `setTimeout`
+- `setInterval`
+- DOM events
+- I/O operations
+
+**Key Rule:** All microtasks execute completely before the event loop processes the next macrotask.
+
+#### Quick Interview Explanation
+
+"JavaScript first runs synchronous code, then processes all microtasks like Promise callbacks and async/await continuations, and finally processes macrotasks like setTimeout callbacks."
+
+### Callback Hell → Solutions
+**Problem:** Deeply nested callbacks for sequential async operations.
+```javascript
+getData(a => {
+  getMore(a, b => {
+    getEvenMore(b, c => { /* pyramid of doom */ });
+  });
+});
+```
+
+**Solutions:**
+1. **Promises:** `.then()` chaining flattens nesting
+2. **Async/Await:** Synchronous-looking async code
+3. **RxJS:** Observable streams with operators
+
+```javascript
+// Async/Await (cleanest)
+async function fetchAll() {
+  const a = await getData();
+  const b = await getMore(a);
+  const c = await getEvenMore(b);
+  return c;
 }
 ```
 
-### Complexity
-| | Time | Space |
-|-|------|-------|
-| Brute force (nested loops) | O(n²) | O(1) |
-| **Optimized (hash set)** | **O(n)** | **O(n)** |
+### `this` Context Rules
+1. **Global:** `window` (browser) / `undefined` (strict mode)
+2. **Method call:** `obj.method()` → `this` = `obj`
+3. **Constructor:** `new Fn()` → `this` = new instance
+4. **Explicit:** `call`/`apply`/`bind` → `this` = specified object
+5. **Arrow function:** Inherits `this` from enclosing scope (lexical)
 
-### Variations
-- Return indices instead of boolean (use Map instead of Set)
-- Find all pairs (don't return early)
-- Three Sum (sort + two pointers, O(n²))
+### Debounce vs Throttle
 
----
+Both limit how often a function executes, but they work differently:
 
-## Problem 2: Longest Palindromic Substring
+| | Debounce | Throttle |
+|-|----------|----------|
+| **Behavior** | Waits until user *stops* triggering, then executes once | Executes at most once per interval, even if triggered repeatedly |
+| **Analogy** | Elevator door — resets wait timer every time someone enters | Gatekeeping — allows one person through every N seconds |
+| **Use case** | Search input, window resize, form validation | Scroll events, button clicks, API polling |
 
-**Pattern:** Expand Around Center
-**Difficulty:** Medium
-
-### Approach
-For each index, expand outward while characters match. Check both odd-length (center = single char) and even-length (center = between two chars) palindromes.
-
-### Code (JavaScript)
+**Debounce — Implementation:**
 ```javascript
-function longestPalindrome(s) {
-  let longest = "";
+function debounce(fn, delay) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);                   // Reset timer on every call
+    timer = setTimeout(() => {
+      fn.apply(this, args);                // Execute after delay with no new calls
+    }, delay);
+  };
+}
 
-  const expand = (left, right) => {
-    while (left >= 0 && right < s.length && s[left] === s[right]) {
-      const sub = s.substring(left, right + 1);
-      if (sub.length > longest.length) longest = sub;
-      left--;
-      right++;
+// Usage: API search — only fires 300ms after user stops typing
+const searchInput = document.getElementById('search');
+searchInput.addEventListener('input', debounce((e) => {
+  fetch(`/api/search?q=${e.target.value}`)
+    .then(res => res.json())
+    .then(data => renderResults(data));
+}, 300));
+```
+
+**How it works step-by-step:**
+```
+User types: H  e  l  l  o
+Time:       0  50 100 150 200
+                              ← 300ms of silence
+                              ← NOW the function fires (once, with "Hello")
+```
+
+**Throttle — Implementation:**
+```javascript
+function throttle(fn, limit) {
+  let inThrottle = false;
+  return function (...args) {
+    if (!inThrottle) {
+      fn.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
     }
   };
-
-  for (let i = 0; i < s.length; i++) {
-    expand(i, i);     // odd-length palindrome
-    expand(i, i + 1); // even-length palindrome
-  }
-  return longest;
-}
-```
-
-### Complexity
-| | Time | Space |
-|-|------|-------|
-| **Expand around center** | **O(n²)** | **O(1)** |
-| Manacher's algorithm | O(n) | O(n) |
-
-### Variations
-- Longest palindromic subsequence (DP)
-- Count palindromic substrings
-- Check if string can form palindrome (character frequency)
-
----
-
-## Problem 3: Merge Intervals
-
-**Pattern:** Sort + Greedy Merge
-**Difficulty:** Medium
-
-### Approach
-Sort intervals by start time. Iterate: if current overlaps with previous result, extend the end. Otherwise, push new interval.
-
-### Code (JavaScript)
-```javascript
-function mergeIntervals(intervals) {
-  intervals.sort((a, b) => a[0] - b[0]);
-  const result = [intervals[0]];
-
-  for (let i = 1; i < intervals.length; i++) {
-    const prev = result[result.length - 1];
-    const curr = intervals[i];
-    if (curr[0] <= prev[1]) {
-      prev[1] = Math.max(prev[1], curr[1]);
-    } else {
-      result.push(curr);
-    }
-  }
-  return result;
-}
-// Input:  [[1,3],[2,6],[8,10],[15,18]]
-// Output: [[1,6],[8,10],[15,18]]
-```
-
-### Complexity
-| | Time | Space |
-|-|------|-------|
-| **Sort + merge** | **O(n log n)** | **O(n)** |
-
-### Variations
-- Insert interval into sorted non-overlapping list
-- Meeting rooms (can attend all? → check for any overlap)
-- Meeting rooms II (min rooms needed → min heap)
-
----
-
-## Problem 4: Second Highest Element
-
-**Pattern:** Set deduplication + sorting
-**Difficulty:** Easy
-
-### Approach (Initial — has a flaw)
-Sort descending, deduplicate with Set, return second element.
-
-```javascript
-const secondHighest = (arr) => {
-  arr.sort((a, b) => b - a);
-  const set = new Set(arr);
-  if (set.size < 2) return null;
-  return [...set][1];
-};
-
-console.log(secondHighest([5, 5]));       // null ✅ (only one unique value)
-console.log(secondHighest([3, 1, 4, 4])); // 3 ✅
-console.log(secondHighest([-5, -1, -3])); // -3 ❌ WRONG — returns -5 (Set doesn't preserve sort order)
-```
-
-**Problem:** `Set` preserves *insertion order*, but `sort((a,b) => b-a)` sorts descending by numeric value, so the Set seems to work — **except** `Set` does not re-sort. The real issue: this approach is O(n log n) due to sort, and the Set spread creates an extra array.
-
-### Optimized — Single Pass O(n)
-```javascript
-function secondHighest(arr) {
-  let first = -Infinity;
-  let second = -Infinity;
-
-  for (const num of arr) {
-    if (num > first) {
-      second = first;
-      first = num;
-    } else if (num > second && num !== first) {
-      second = num;
-    }
-  }
-
-  return second === -Infinity ? null : second;
 }
 
-console.log(secondHighest([5, 5]));         // null ✅
-console.log(secondHighest([3, 1, 4, 4]));   // 3 ✅
-console.log(secondHighest([-5, -1, -3]));   // -3 ✅
-console.log(secondHighest([1]));            // null ✅
-console.log(secondHighest([7, 7, 7]));      // null ✅
-console.log(secondHighest([-10, -20, 0]));  // -10 ✅
+// Usage: Scroll handler — fires at most once every 200ms
+window.addEventListener('scroll', throttle(() => {
+  console.log('Scroll position:', window.scrollY);
+}, 200));
 ```
 
-### Complexity
-| Approach | Time | Space |
-|----------|------|-------|
-| Sort + Set | O(n log n) | O(n) |
-| **Single pass** | **O(n)** | **O(1)** |
+**In Angular (RxJS debounce):**
+```typescript
+this.searchControl.valueChanges.pipe(
+  debounceTime(300),           // Built-in RxJS operator
+  distinctUntilChanged(),       // Skip if same value
+  switchMap(query => this.http.get(`/api/search?q=${query}`))
+).subscribe(results => this.results = results);
+```
 
-### Edge Cases
-- All elements are the same → return `null`
-- Array has only one element → return `null`
-- Negative numbers → must use `-Infinity` as initial values (not `0`)
-- Duplicates of the highest → skip them (`num !== first` check)
+**In React (custom hook):**
+```typescript
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
 
----
+// Usage
+const debouncedSearch = useDebounce(searchTerm, 300);
+useEffect(() => { fetchResults(debouncedSearch); }, [debouncedSearch]);
+```
 
-## Problem 5: Max Consecutive Ones
+### `sessionStorage` vs `localStorage` vs Cookies
 
-**Pattern:** Sliding window / counter
-**Difficulty:** Easy
-**LeetCode:** #485
+| | `localStorage` | `sessionStorage` | Cookies |
+|-|---------------|------------------|--------|
+| **Capacity** | ~5-10 MB | ~5 MB | ~4 KB |
+| **Lifetime** | Permanent (until manually cleared) | Until tab/window closes | Configurable (`Expires` / `Max-Age`) |
+| **Scope** | Same origin, all tabs | Same origin, **same tab only** | Same origin, sent with every HTTP request |
+| **Sent to server?** | No | No | Yes — automatically with every request |
+| **Access** | JavaScript only | JavaScript only | JavaScript (unless `HttpOnly`) + server |
+| **Use case** | User preferences, theme, cached data | Wizard form state, one-time session data | Auth tokens, session IDs, tracking |
+| **XSS vulnerable?** | Yes | Yes | No (if `HttpOnly` flag set) |
 
-### Approach
-Track a running count of consecutive 1s. Reset to 0 when a non-1 is encountered. Track the max seen so far.
-
-### Code (JavaScript)
 ```javascript
-var findMaxConsecutiveOnes = function(nums) {
-  let count = 0;
-  let max = 0;
-  nums.forEach((ele) => {
-    if (ele === 1) {
-      count++;
-      max = Math.max(count, max);
-    } else {
-      count = 0;
-    }
-  });
-  return max;
-};
+// localStorage — persists across tabs and browser restarts
+localStorage.setItem('theme', 'dark');
+localStorage.getItem('theme');          // 'dark'
+localStorage.removeItem('theme');
+localStorage.clear();                   // Remove all
 
-console.log(findMaxConsecutiveOnes([1, 1, 0, 1, 1, 1])); // 3
-console.log(findMaxConsecutiveOnes([1, 0, 1, 1, 0, 1])); // 2
-console.log(findMaxConsecutiveOnes([0, 0, 0]));           // 0
-console.log(findMaxConsecutiveOnes([1]));                  // 1
-console.log(findMaxConsecutiveOnes([]));                   // 0
+// sessionStorage — same API, but tab-scoped
+sessionStorage.setItem('step', '3');
+sessionStorage.getItem('step');         // '3' — gone when tab closes
+
+// Cookies — set via document.cookie (or from server via Set-Cookie header)
+document.cookie = 'token=abc123; Secure; SameSite=Strict; Max-Age=3600';
 ```
 
-### Complexity
-| | Time | Space |
-|-|------|-------|
-| **Single pass** | **O(n)** | **O(1)** |
+**Security best practices for tokens:**
+- **Auth tokens (JWT):** Store in `HttpOnly` cookies (not accessible via JS → XSS safe)
+- **Never** store sensitive data in `localStorage` — vulnerable to XSS attacks
+- Use `Secure` flag → cookie sent only over HTTPS
+- Use `SameSite=Strict` → prevents CSRF
 
-### Variations
-- **Max Consecutive Ones II** (LeetCode #487): You may flip at most one 0 → sliding window with at most one 0 inside
-- **Max Consecutive Ones III** (LeetCode #1004): You may flip at most K zeros → sliding window tracking zero count
-
----
-
-## Problem 6: LINQ One-Liners (C#)
-
-**Pattern:** GroupBy + Aggregation
-
-### Top K Frequent Elements
-```csharp
-var result = nums.GroupBy(x => x)
-    .OrderByDescending(g => g.Count())
-    .Take(k)
-    .Select(g => g.Key);
+**When to use what:**
 ```
-
-### First Non-Repeating Character
-```csharp
-var result = input.GroupBy(c => c)
-    .Where(g => g.Count() == 1)
-    .Select(g => g.Key)
-    .FirstOrDefault();
+Auth tokens       → HttpOnly cookies (most secure)
+User preferences  → localStorage (persists across sessions)
+Form wizard state → sessionStorage (auto-clears on tab close)
+Tracking/consent  → cookies (server needs access)
 ```
-
-### Flatten Nested Lists
-```csharp
-var flat = list.SelectMany(x => x);
-```
-
-### Word Frequency Dictionary
-```csharp
-var freq = words.GroupBy(w => w)
-    .ToDictionary(g => g.Key, g => g.Count());
-```
-
-### Find Duplicates
-```csharp
-var duplicates = nums.GroupBy(x => x)
-    .Where(g => g.Count() > 1)
-    .Select(g => g.Key);
-```
-
----
-
-## Quick Reference — Common Patterns
-
-```
-TWO SUM:          Hash Set/Map → O(n)
-SLIDING WINDOW:   Two pointers, expand/shrink window
-MERGE INTERVALS:  Sort by start, greedy merge
-PALINDROME:       Expand around center → O(n²)
-BINARY SEARCH:    Sorted array, halve search space → O(log n)
-BFS/DFS:          Graph/tree traversal
-DYNAMIC PROG:     Overlapping subproblems + optimal substructure
-GREEDY:           Local optimal → global optimal
-STACK:            Matching brackets, next greater element
-HEAP:             Top K elements, merge K sorted lists
-```
-
-
-<!-- ===== FILE: database/sql.md ===== -->
-
-# SQL — Interview Preparation
-
----
-
-## Core Concepts
-
-### Normalization vs Denormalization
-
-| | Normalization | Denormalization |
-|-|--------------|----------------|
-| Goal | Eliminate redundancy | Improve read performance |
-| Data integrity | High | Lower (redundant data) |
-| Write performance | Better | Worse (update anomalies) |
-| Read performance | Slower (more joins) | Faster (fewer joins) |
-| Use case | OLTP (transactional) | OLAP (analytics/reporting) |
-
-**Normal Forms:**
-- **1NF:** Atomic values, no repeating groups (split "Full Name" → FirstName, MiddleName, LastName)
-- **2NF:** 1NF + all non-key columns fully depend on the *entire* primary key
-- **3NF:** 2NF + no non-key column depends on another non-key column
-
-### Indexes
-
-| | Clustered | Non-Clustered |
-|-|-----------|---------------|
-| Data storage | Rows stored in index order | Separate structure with pointers to rows |
-| Per table | Only 1 | Many |
-| Speed | Faster for range queries | Faster for specific lookups |
-| Default | Created on Primary Key | Must create explicitly |
-| Structure | B-Tree (leaf = actual data) | B-Tree (leaf = pointer to data) |
-
-**Choosing non-clustered indexes:**
-- Columns in `WHERE`, `ORDER BY`, `GROUP BY` clauses
-- Keep clustered index short (columns may appear in non-clustered indexes)
-- **Covering index:** Includes all columns needed by query → no table lookup needed
-- Avoid over-indexing (storage + write overhead)
-
-### Stored Procedure vs Function
-
-| | Stored Procedure | Function |
-|-|-----------------|----------|
-| Return value | Optional (can return 0 or multiple) | Must return a value |
-| Parameters | Input + Output | Input only |
-| DML statements | SELECT + INSERT/UPDATE/DELETE | SELECT only |
-| Transaction mgmt | Yes | No |
-| Try-Catch | Yes | No |
-| Call in SELECT | No | Yes |
-| Compilation | Precompiled (cached plan) | Compiled each execution |
-
-**Function types:**
-- **Scalar:** Returns single value (`ABS()`, `ROUND()`, custom)
-- **Inline Table-Valued:** Returns table from single SELECT
-- **Multi-Statement Table-Valued:** Returns table from multiple statements
-
----
-
-## Deep Dive
-
-### Common Query Patterns
-
-**Nth highest salary (using CTE + ROW_NUMBER):**
-```sql
-WITH CTE AS (
-    SELECT EmpName, Salary,
-           ROW_NUMBER() OVER (ORDER BY Salary DESC) AS RN
-    FROM Employee
-)
-SELECT * FROM CTE WHERE RN = @N;
-```
-
-**Max salary per department:**
-```sql
-SELECT DeptName, MAX(Salary)
-FROM Employee e
-JOIN Department d ON e.DeptId = d.DeptID
-GROUP BY DeptName;
-```
-
-**Self-join — employees who are managers:**
-```sql
-SELECT e1.Name AS Employee, e2.Name AS Manager
-FROM Employee e1
-LEFT JOIN Employee e2 ON e1.ManagerId = e2.Id;
-```
-
-**Find duplicates:**
-```sql
--- Find which values are duplicated and how many times
-SELECT Name, COUNT(*) AS DuplicateCount
-FROM Employee
-GROUP BY Name
-HAVING COUNT(*) > 1;
-
--- Find all duplicate rows with full details
-WITH CTE AS (
-    SELECT *, ROW_NUMBER() OVER (PARTITION BY Name ORDER BY Id) AS RN
-    FROM Employee
-)
-SELECT * FROM CTE WHERE RN > 1;   -- duplicate rows only
--- SELECT * FROM CTE WHERE Name IN (SELECT Name FROM CTE WHERE RN > 1);  -- all rows including originals
-```
-
-**Delete duplicates (keep first):**
-```sql
-WITH CTE AS (
-    SELECT Id, ROW_NUMBER() OVER (PARTITION BY Name ORDER BY Id) AS RN
-    FROM Employee
-)
-DELETE FROM Employee WHERE Id IN (SELECT Id FROM CTE WHERE RN > 1);
-```
-
-**Alternate rows (even/odd):**
-```sql
-WITH CTE AS (
-    SELECT ROW_NUMBER() OVER (ORDER BY Id) AS RowNum, *
-    FROM Employee
-)
-SELECT * FROM CTE WHERE RowNum % 2 = 0; -- even rows
-```
-
-**Handle NULL parameters:**
-```sql
-WHERE (@code IS NULL OR code = @code)
-```
-
-**Names ending with a specific character (LIKE pattern):**
-```sql
-SELECT DISTINCT Name
-FROM student_marks
-WHERE Name LIKE '%a';
-
--- Other LIKE patterns:
--- 'A%'     → starts with A
--- '%an%'   → contains "an"
--- '_a%'    → second character is "a"
--- '[ABC]%' → starts with A, B, or C
-```
-
-**Total marks per student (aggregate across subjects):**
-```sql
-SELECT Name, SUM(Marks) AS TotalMarks
-FROM student_marks
-GROUP BY Name;
-
--- With filtering: only students with total > 200
-SELECT Name, SUM(Marks) AS TotalMarks
-FROM student_marks
-GROUP BY Name
-HAVING SUM(Marks) > 200;
-```
-
-> **`WHERE` vs `HAVING`:** `WHERE` filters rows *before* grouping. `HAVING` filters groups *after* aggregation. You cannot use aggregate functions in `WHERE`.
-
-### Temp Tables vs Table Variables
-
-| | Temp Table (`#temp`) | Table Variable (`@table`) |
-|-|---------------------|--------------------------|
-| Storage | TempDB | Memory |
-| Transactions | Participates | Does not participate |
-| Indexes | Full index support | Only via PK/UNIQUE constraints |
-| Scope | Session (local `#`) or global (`##`) | Batch/scope |
-| Performance | Better for large datasets | Faster for small datasets |
-
-### Views
-- Virtual table based on a SELECT query. No physical storage.
-- Simplifies complex queries. Can be indexed for performance.
-- Use for: reusable queries, row-level security, abstraction layer.
-
-### Common Table Expressions (CTE)
-```sql
-WITH CTE AS (
-    SELECT ... FROM ...
-)
-SELECT * FROM CTE;
-```
-- Temporary named result set within a single statement.
-- Can be recursive (hierarchical data like org charts).
-- Can be referenced multiple times in the same query.
-- Not stored as an object.
-
-### Triggers & Magic Tables
-- **Triggers:** Auto-execute SQL on INSERT/UPDATE/DELETE events.
-- **`INSERTED` table:** Contains new rows (on INSERT/UPDATE).
-- **`DELETED` table:** Contains old rows (on DELETE/UPDATE).
-
-### Composite Keys
-```sql
-CREATE TABLE OrderItems (
-    OrderId INT,
-    ProductId INT,
-    PRIMARY KEY (OrderId, ProductId)  -- composite key
-);
-```
-- Combination of columns that uniquely identifies a row.
-- Used when no single column is unique.
-
-**Composite index behavior:** If index is on `(A, B, C)`:
-- `WHERE A = ? AND B = ?` → index used (leftmost prefix)
-- `WHERE B = ? AND C = ?` → index NOT used (missing leading column)
-
----
-
-## Real-World Usage
-
-### Query Performance Optimization (15 tips)
-1. Define Primary Keys and Foreign Keys
-2. Normalize the database
-3. Avoid `SELECT *` — name specific columns
-4. Create appropriate clustered/non-clustered indexes
-5. Use `EXISTS` instead of `IN` for existence checks
-6. Choose appropriate data types (varchar > nvarchar if ASCII-only)
-7. Keep clustered index columns short
-8. Use joins instead of subqueries
-9. Avoid cursors (use set-based operations)
-10. Use table variables for small datasets, temp tables for large
-11. Use schema name before objects (`dbo.Employee`)
-12. Use `SET NOCOUNT ON` to reduce network traffic
-13. Use `TRY-CATCH` to handle deadlocks gracefully
-14. Don't prefix user SPs with `sp_` (SQL Server checks `master` DB first)
-15. Use covering indexes to avoid table lookups
-
-### SQL Profiler / Execution Plans
-- **Execution Plan:** `CTRL + M` in SSMS. Shows how SQL Server processes query.
-- **SQL Profiler:** Captures and analyzes SQL events. Find slow queries.
-- Look for: table scans (bad), index seeks (good), high-cost operators.
 
 ---
 
 ## Tradeoffs & Pitfalls
 
-- **Over-indexing:** Each index = storage + write overhead on INSERT/UPDATE/DELETE.
-- **`COUNT(*)` vs `COUNT(column)`:** `COUNT(*)` counts NULLs. `COUNT(column)` skips NULLs.
-- **Cursors:** Extremely slow. Replace with set-based operations or CTEs.
-- **`UNION` vs `UNION ALL`:** UNION removes duplicates (slower). UNION ALL keeps all rows (faster).
-- **`IN` vs `EXISTS`:** EXISTS stops at first match (faster for correlated subqueries).
-- **Temp tables in production:** Clean up after use. Global temp tables (`##`) visible to all sessions.
-- **NULL comparisons:** `NULL = NULL` is FALSE. Use `IS NULL` / `IS NOT NULL`.
-- **COALESCE:** Returns first non-null value. Use for default values.
+- **`==` vs `===`:** Always use `===` (strict equality). `==` does type coercion (`"0" == false` is `true`).
+- **Arrow functions:** No own `this`, `arguments`, or `super`. Can't be used as constructors.
+- **`typeof null === "object"`:** Known JS quirk. Check null explicitly.
+- **Floating point:** `0.1 + 0.2 !== 0.3`. Use `toFixed()` or integer math for money.
+- **Hoisting:** `var` declarations hoist but not assignments. `let`/`const` have temporal dead zone.
+- **Reference vs Value:** Primitives are copied by value. Objects/arrays by reference. Use spread (`...`) or `structuredClone()` for deep copies.
 
 ---
 
-## Interview Questions — Rapid Fire
+## Interview Questions
 
-1. **What is normalization?** DB design technique to eliminate data redundancy. 1NF→2NF→3NF.
-2. **Clustered vs Non-Clustered index?** Clustered = data stored in index order (1 per table). Non-clustered = separate structure with pointers (many per table).
-3. **SP vs Function?** SP can do DML + transactions + output params. Function must return value, SELECT only, callable in SELECT.
-4. **What is a CTE?** Temporary named result set defined with `WITH`. Can be recursive.
-5. **How to find Nth highest salary?** `ROW_NUMBER() OVER (ORDER BY Salary DESC)` in CTE, filter `WHERE RN = N`.
-6. **How to delete duplicates?** `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`, delete where RN > 1.
-7. **Temp table vs Table variable?** Temp = TempDB + transactions + indexes. Table var = memory + faster for small data.
-8. **What is a trigger?** SQL code auto-executed on table DML events. Uses INSERTED/DELETED magic tables.
-9. **`UNION` vs `UNION ALL`?** UNION removes duplicates. UNION ALL keeps all (faster).
-10. **How to optimize slow query?** Check execution plan, add indexes, avoid SELECT *, use EXISTS over IN, avoid cursors.
+1. **What is hoisting?** Variable/function declarations are moved to top of scope during compilation. `var` → `undefined`, `let`/`const` → TDZ error.
+2. **Explain closures with example.** Function retaining outer scope variables after outer function returns. Used in module pattern, memoization.
+3. **What is the event loop?** Mechanism that processes call stack, microtask queue (Promises), then macrotask queue (setTimeout) in a loop.
+4. **Difference between `==` and `===`?** `==` coerces types before comparing. `===` compares type AND value.
+5. **What is a Promise?** Object representing eventual completion/failure of an async operation. States: pending, fulfilled, rejected.
+6. **`Promise.all` vs `Promise.allSettled` vs `Promise.race`?** `all` = fail-fast on first rejection. `allSettled` = wait for all, return all results. `race` = first to resolve/reject wins.
+7. **What is debouncing vs throttling?** Debounce = execute after delay, reset on new trigger. Throttle = execute at most once per interval.
+8. **Explain prototypal inheritance.** Objects inherit from other objects via prototype chain. `Object.create()`, `class extends`.
+
+---
+
+## Tooling & Package Management
+
+### `npm audit`
+
+Scans your project's dependency tree for known security vulnerabilities.
+
+```bash
+# Run a vulnerability audit
+npm audit
+
+# Output: table of vulnerabilities with severity (low/moderate/high/critical)
+
+# Auto-fix vulnerabilities (updates to patched versions)
+npm audit fix
+
+# Force fix — may include breaking major version changes
+npm audit fix --force
+
+# Generate JSON report (useful for CI/CD pipelines)
+npm audit --json
+```
+
+**How it works:**
+1. Reads `package-lock.json` to get exact installed versions
+2. Checks against npm's security advisory database
+3. Reports vulnerable packages, severity, and recommended fix version
+
+**In CI/CD:** Add `npm audit --audit-level=high` to fail builds on high/critical vulnerabilities.
+
+### `package.json` vs `package-lock.json`
+
+| | `package.json` | `package-lock.json` |
+|-|---------------|--------------------|
+| **Purpose** | Project manifest — metadata, scripts, dependency ranges | Exact dependency tree lock |
+| **Version format** | Ranges: `^1.2.3`, `~1.2.3`, `>=1.0.0` | Exact: `1.2.3` |
+| **Created by** | `npm init` or manually | Auto-generated by `npm install` |
+| **Commit to git?** | Always | Always (ensures reproducible builds) |
+| **Editable?** | Yes (manually) | No (auto-managed by npm) |
+| **Contains** | Direct dependencies only | Entire nested dependency tree |
+
+**Version range symbols:**
+```
+^1.2.3  →  >=1.2.3 and <2.0.0  (minor + patch updates allowed)
+~1.2.3  →  >=1.2.3 and <1.3.0  (patch updates only)
+1.2.3   →  exactly 1.2.3       (pinned)
+```
+
+**Why `package-lock.json` matters:**
+- Without it, `npm install` on different machines may install different versions (within the `^`/`~` range)
+- Guarantees every developer and CI/CD gets the exact same dependency versions
+- Makes builds reproducible and deterministic
+
+**Common scenario:**
+```bash
+# Developer A adds a package
+npm install lodash      # Updates both package.json AND package-lock.json
+
+# Developer B pulls and installs
+npm install             # Reads package-lock.json → gets exact same versions
+
+# To update all dependencies to latest allowed by ranges
+npm update              # Updates package-lock.json
+```
 
 ---
 
 ## Quick Reference
 
 ```
-NORMAL FORMS:   1NF (atomic) → 2NF (full key dependency) → 3NF (no transitive dependency)
-INDEXES:        Clustered (1/table, data=index) | Non-clustered (many, pointer to data)
-JOINS:          INNER | LEFT | RIGHT | FULL OUTER | CROSS | SELF
-FUNCTIONS:      Scalar (single value) | Inline TVF | Multi-Statement TVF
-TEMP:           #local (session) | ##global (all sessions) | @variable (memory)
-AGGREGATES:     COUNT | SUM | AVG | MIN | MAX | GROUP BY + HAVING
-WINDOW:         ROW_NUMBER() | RANK() | DENSE_RANK() | OVER (PARTITION BY ... ORDER BY ...)
-NULL:           IS NULL | COALESCE(a,b,c) | NULLIF(a,b)
-PERF:           Execution plan | SQL Profiler | SET NOCOUNT ON | covering indexes
+SCOPE:        var=function  let/const=block
+ASYNC:        Callbacks → Promises → Async/Await
+EVENT LOOP:   Stack → Microtasks (ALL) → Macrotask (ONE) → repeat
+THIS:         Global | Method | Constructor | Explicit | Arrow (lexical)
+COPY:         Shallow: spread/Object.assign  Deep: structuredClone()
+IMMUTABLE:    preventExtensions < seal < freeze
+EQUALITY:     Always use === (strict)
+TYPES:        string, number, boolean, null, undefined, symbol, bigint, object
+FALSY:        false, 0, "", null, undefined, NaN
 ```
-
-
-<!-- ===== FILE: devops/cloud-devops.md ===== -->
-
-# Cloud & DevOps — Interview Preparation
-
----
-
-## Core Concepts
-
-### Cloud Service Models
-
-| Model | You Manage | Provider Manages | Example |
-|-------|-----------|-----------------|---------|
-| **On-Premises** | Everything | Nothing | Your own data center |
-| **IaaS** | OS, apps, data, middleware | Hardware, networking, storage | Azure VMs, AWS EC2 |
-| **PaaS** | App + data only | Everything else | Azure App Service, Heroku |
-| **SaaS** | Nothing (just use it) | Everything | Microsoft 365, Gmail |
-
----
-
-## Deep Dive
-
-### Azure App Service
-- HTTP-based PaaS for web apps, REST APIs, mobile backends.
-- Supports .NET, Java, Node.js, Python, PHP.
-- Runs on both Windows and Linux.
-
-**Scaling:**
-| Type | What | Example |
-|------|------|---------|
-| **Scale Up** | Upgrade plan (more CPU/RAM) | Basic → Standard |
-| **Scale Out** | Add more instances | 1 → 5 instances |
-| **Auto-scaling** | Rule-based instance management | Scale on CPU > 70% |
-
-Auto-scaling available on **Standard plan and above**. Based on conditions: CPU %, DataIn/Out, HTTP queue length.
-
-**Key features by plan tier:**
-
-| Feature | Basic | Standard | Premium |
-|---------|-------|----------|---------|
-| Auto-scaling | No | Yes | Yes |
-| Deployment slots | No | Yes | Yes |
-| SSL/TLS | No | Yes | Yes |
-| Backups | No | Yes | Yes |
-
-**Deployment Slots:** Separate environments (dev, staging, prod) under one App Service. Swap slots for zero-downtime deployments.
-
-**Zone Redundancy:** Deploy across 3 availability zones. Protects against datacenter failures. Ensures disaster recovery.
-
-### Azure Container Services
-
-| Service | Purpose |
-|---------|---------|
-| **Container Instances (ACI)** | Run containers without managing VMs. Quick, serverless. |
-| **Container Registry (ACR)** | Private Docker image registry in Azure. Store and manage images. |
-
-### Azure Functions (Serverless)
-
-- Run code without provisioning servers. Pay only when code runs.
-- **Consumption Plan:** Scale automatically based on incoming events.
-- **Development:** Portal, VS Code, or any editor.
-
-**Trigger types:** HTTP, Timer, Blob Storage, Cosmos DB, Service Bus Queue, Event Hub, Kafka.
-
-**Authorization levels:** Function, Anonymous, Admin.
-
-**Durable Functions** — stateful serverless:
-```
-HTTP Starter → triggers → Orchestrator → calls → Activity Functions
-```
-- **Orchestrator:** Defines the workflow sequence.
-- **Activity Functions:** Individual units of work invoked by orchestrator.
-- Use case: Long-running workflows, fan-out/fan-in, human interaction patterns.
-
----
-
-### Message Brokers: Kafka vs RabbitMQ
-
-| | Kafka | RabbitMQ |
-|-|-------|----------|
-| Model | Distributed log / event stream | Message broker / queue |
-| Throughput | Very high | Moderate |
-| Ordering | Per-partition ordering | Per-queue ordering |
-| Retention | Persists messages (configurable) | Removes after consumption |
-| Scaling | Partition-based | Queue-based |
-| Latency | Higher | Lower |
-| Best for | Event sourcing, log pipelines, analytics | Task queues, RPC, background jobs |
-
-**When to use Kafka:**
-- Event streaming / event sourcing
-- Big data pipelines
-- Telemetry & analytics
-- When consumers need to replay events
-
-**When to use RabbitMQ:**
-- Job/task queues
-- Microservice async communication
-- Request/response (RPC) messaging
-- When you need complex routing (exchanges)
-
-**Kafka improvements to consider:**
-1. Schema registry for message versioning
-2. Better topic partition strategy
-3. Dead letter queues for failed messages
-4. Monitoring and alerting
-
----
-
-## Real-World Usage
-
-### Typical Cloud Architecture for .NET Microservices
-```
-Client → API Gateway (load balancing, auth)
-           ├── Service A (Azure App Service)
-           ├── Service B (Azure Functions)
-           └── Service C (Container Instance)
-                   ↓
-              Message Broker (Kafka/RabbitMQ)
-                   ↓
-              Database (SQL Server / Cosmos DB)
-              Cache (Redis)
-              Storage (Blob)
-```
-
-### Key DevOps Tools
-
-| Tool | Purpose |
-|------|---------|
-| **Docker** | Containerize applications |
-| **Kubernetes** | Container orchestration at scale |
-| **Jenkins** | CI/CD pipeline automation |
-| **Nginx** | Reverse proxy, load balancer |
-| **AWS Lambda** | Serverless compute (AWS equivalent of Azure Functions) |
-| **S3** | Object storage (AWS) |
-
----
-
-## Tradeoffs & Pitfalls
-
-- **PaaS vs IaaS:** PaaS = faster development, less control. IaaS = full control, more maintenance.
-- **Consumption plan limits:** Cold starts, execution timeout (5 min default, 10 max). Use Premium plan for latency-sensitive functions.
-- **Kafka overkill:** Don't use Kafka for simple job queues. RabbitMQ is simpler and lower latency.
-- **Deployment slots swap:** Always test in staging slot first. Swap = instant, no downtime.
-- **Auto-scaling costs:** Scale-out rules without scale-in limits = unexpected bills.
-- **Container vs Serverless:** Containers for persistent workloads. Serverless for event-driven, sporadic loads.
-
----
-
-## Interview Questions — Rapid Fire
-
-1. **IaaS vs PaaS vs SaaS?** IaaS = you manage OS+apps. PaaS = you manage app+data. SaaS = you just use it.
-2. **What is Azure App Service?** PaaS for hosting web apps, REST APIs. Supports auto-scaling, deployment slots, SSL.
-3. **Scale Up vs Scale Out?** Up = bigger machine. Out = more instances.
-4. **What are deployment slots?** Separate environments under one App Service. Swap for zero-downtime releases.
-5. **What is Azure Functions?** Serverless compute. Triggers: HTTP, Timer, Blob, Queue. Pay per execution.
-6. **What are Durable Functions?** Stateful serverless. Orchestrator coordinates activity functions in sequence.
-7. **Kafka vs RabbitMQ?** Kafka = event streaming, high throughput, persistent log. RabbitMQ = task queues, lower latency, complex routing.
-8. **What is Docker?** Packages app + dependencies into a portable container.
-9. **What is Kubernetes?** Orchestrates containers at scale — deployment, scaling, networking, self-healing.
-10. **Availability zones?** Physically separate datacenters in a region. Minimum 3 per region for redundancy.
-
----
-
-## Quick Reference
-
-```
-CLOUD:      On-Prem → IaaS → PaaS → SaaS  (less control, less management)
-AZURE:      App Service (PaaS) | Functions (serverless) | ACI (containers) | ACR (registry)
-SCALING:    Up (bigger) | Out (more) | Auto (rules-based)
-PLANS:      Basic < Standard < Premium  (auto-scale from Standard+)
-FUNCTIONS:  Triggers: HTTP|Timer|Blob|Queue|EventHub|Kafka
-            Auth: Function|Anonymous|Admin
-            Durable: Starter→Orchestrator→Activities
-MESSAGING:  Kafka (event stream, high throughput) | RabbitMQ (task queue, low latency)
-CONTAINERS: Docker (package) | K8s (orchestrate) | ACI (serverless containers)
-DEVOPS:     Jenkins (CI/CD) | Nginx (reverse proxy) | Docker + K8s
-```
-
-
-<!-- ===== FILE: frontend/angular.md ===== -->
-
 # Angular — Interview Preparation
 
 ---
@@ -2736,419 +2574,6 @@ LOADING:    Eager (default) | Lazy (loadChildren) | Preloading (PreloadAllModule
 
 AOT > JIT:  Faster render, smaller bundle, earlier error detection
 ```
-
-
-<!-- ===== FILE: frontend/javascript.md ===== -->
-
-# JavaScript — Interview Preparation
-
----
-
-## Core Concepts
-
-### CSS Specificity
-
-Specificity determines which CSS rule wins when multiple rules target the same element.
-
-**Hierarchy (highest → lowest):**
-```
-!important  >  Inline styles  >  ID selectors  >  Class/Attribute/Pseudo-class  >  Element/Pseudo-element  >  Universal (*)
-```
-
-**Specificity Calculation:** Each selector gets a score as `(a, b, c, d)`:
-
-| Component | Selector Type | Example | Weight |
-|-----------|--------------|---------|--------|
-| `a` | Inline styles | `style="color: red"` | 1,0,0,0 |
-| `b` | ID selectors | `#header` | 0,1,0,0 |
-| `c` | Classes, attributes, pseudo-classes | `.nav`, `[type="text"]`, `:hover` | 0,0,1,0 |
-| `d` | Elements, pseudo-elements | `div`, `::before` | 0,0,0,1 |
-
-**Examples:**
-```css
-/* Specificity: 0,0,0,1 */
-p { color: blue; }
-
-/* Specificity: 0,0,1,0 — wins over element */
-.text { color: green; }
-
-/* Specificity: 0,1,0,0 — wins over class */
-#main { color: red; }
-
-/* Specificity: 0,1,1,1 — highest combined */
-#main .text p { color: purple; }
-
-/* !important overrides everything (avoid in production) */
-p { color: orange !important; }
-```
-
-**Resolution order when specificity is equal:** Last rule in source order wins.
-
-**Best Practices:**
-- Avoid `!important` — makes debugging/overriding painful
-- Prefer classes over IDs for styling (lower specificity = easier to override)
-- Use BEM naming convention (`.block__element--modifier`) to avoid specificity wars
-- Inline styles should be reserved for dynamic/JS-driven styles only
-
----
-
-### `var` vs `let` vs `const`
-
-| | `var` | `let` | `const` |
-|-|-------|-------|---------|
-| Scope | Function | Block | Block |
-| Hoisting | Yes (initialized as `undefined`) | Yes (TDZ — not accessible) | Yes (TDZ) |
-| Re-declaration | Yes | No | No |
-| Re-assignment | Yes | Yes | No |
-
-### Closures
-A closure is a function that retains access to its outer scope's variables even after the outer function has returned.
-
-```javascript
-function createCounter() {
-  let count = 0;
-  return {
-    increment: () => ++count,
-    getCount: () => count
-  };
-}
-const counter = createCounter();
-counter.increment(); // 1 — `count` persists via closure
-```
-
-**Use cases:** Data privacy, factory functions, partial application, memoization.
-
-### `call`, `apply`, `bind`
-
-| Method | Syntax | Invocation |
-|--------|--------|-----------|
-| `call` | `fn.call(thisArg, arg1, arg2)` | Immediate, args individually |
-| `apply` | `fn.apply(thisArg, [args])` | Immediate, args as array |
-| `bind` | `fn.bind(thisArg, arg1)` | Returns new function |
-
-```javascript
-const obj = { name: 'Alice' };
-function greet(greeting) { return `${greeting}, ${this.name}`; }
-
-greet.call(obj, 'Hello');    // "Hello, Alice"
-greet.apply(obj, ['Hello']); // "Hello, Alice"
-const bound = greet.bind(obj);
-bound('Hello');              // "Hello, Alice"
-```
-
-### Prototypes & Custom Methods
-Every object has a `__proto__` chain. Add custom methods to built-in types via prototype:
-```javascript
-Array.prototype.last = function() { return this[this.length - 1]; };
-[1, 2, 3].last(); // 3
-```
-
-### Object Immutability
-
-| Method | Prevents | Add | Delete | Modify |
-|--------|----------|-----|--------|--------|
-| `Object.preventExtensions()` | Adding properties | No | Yes | Yes |
-| `Object.seal()` | Adding/deleting | No | No | Yes |
-| `Object.freeze()` | All mutations (shallow) | No | No | No |
-
-For deep freeze, recursively freeze nested objects.
-
----
-
-## Deep Dive
-
-### Event Loop
-JavaScript is single-threaded. The event loop manages async execution:
-
-```
-┌──────────────┐
-│  Call Stack   │ ← Synchronous code executes here
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│  Microtask Q  │ ← Promise callbacks, queueMicrotask, MutationObserver
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│  Macrotask Q  │ ← setTimeout, setInterval, I/O, UI rendering
-└──────────────┘
-```
-
-**Order:** Call stack empties → ALL microtasks → ONE macrotask → repeat.
-
-```javascript
-console.log('1');
-setTimeout(() => console.log('2'), 0);
-Promise.resolve().then(() => console.log('3'));
-console.log('4');
-// Output: 1, 4, 3, 2
-```
-
-### Callback Hell → Solutions
-**Problem:** Deeply nested callbacks for sequential async operations.
-```javascript
-getData(a => {
-  getMore(a, b => {
-    getEvenMore(b, c => { /* pyramid of doom */ });
-  });
-});
-```
-
-**Solutions:**
-1. **Promises:** `.then()` chaining flattens nesting
-2. **Async/Await:** Synchronous-looking async code
-3. **RxJS:** Observable streams with operators
-
-```javascript
-// Async/Await (cleanest)
-async function fetchAll() {
-  const a = await getData();
-  const b = await getMore(a);
-  const c = await getEvenMore(b);
-  return c;
-}
-```
-
-### `this` Context Rules
-1. **Global:** `window` (browser) / `undefined` (strict mode)
-2. **Method call:** `obj.method()` → `this` = `obj`
-3. **Constructor:** `new Fn()` → `this` = new instance
-4. **Explicit:** `call`/`apply`/`bind` → `this` = specified object
-5. **Arrow function:** Inherits `this` from enclosing scope (lexical)
-
-### Debounce vs Throttle
-
-Both limit how often a function executes, but they work differently:
-
-| | Debounce | Throttle |
-|-|----------|----------|
-| **Behavior** | Waits until user *stops* triggering, then executes once | Executes at most once per interval, even if triggered repeatedly |
-| **Analogy** | Elevator door — resets wait timer every time someone enters | Gatekeeping — allows one person through every N seconds |
-| **Use case** | Search input, window resize, form validation | Scroll events, button clicks, API polling |
-
-**Debounce — Implementation:**
-```javascript
-function debounce(fn, delay) {
-  let timer;
-  return function (...args) {
-    clearTimeout(timer);                   // Reset timer on every call
-    timer = setTimeout(() => {
-      fn.apply(this, args);                // Execute after delay with no new calls
-    }, delay);
-  };
-}
-
-// Usage: API search — only fires 300ms after user stops typing
-const searchInput = document.getElementById('search');
-searchInput.addEventListener('input', debounce((e) => {
-  fetch(`/api/search?q=${e.target.value}`)
-    .then(res => res.json())
-    .then(data => renderResults(data));
-}, 300));
-```
-
-**How it works step-by-step:**
-```
-User types: H  e  l  l  o
-Time:       0  50 100 150 200
-                              ← 300ms of silence
-                              ← NOW the function fires (once, with "Hello")
-```
-
-**Throttle — Implementation:**
-```javascript
-function throttle(fn, limit) {
-  let inThrottle = false;
-  return function (...args) {
-    if (!inThrottle) {
-      fn.apply(this, args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
-  };
-}
-
-// Usage: Scroll handler — fires at most once every 200ms
-window.addEventListener('scroll', throttle(() => {
-  console.log('Scroll position:', window.scrollY);
-}, 200));
-```
-
-**In Angular (RxJS debounce):**
-```typescript
-this.searchControl.valueChanges.pipe(
-  debounceTime(300),           // Built-in RxJS operator
-  distinctUntilChanged(),       // Skip if same value
-  switchMap(query => this.http.get(`/api/search?q=${query}`))
-).subscribe(results => this.results = results);
-```
-
-**In React (custom hook):**
-```typescript
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
-}
-
-// Usage
-const debouncedSearch = useDebounce(searchTerm, 300);
-useEffect(() => { fetchResults(debouncedSearch); }, [debouncedSearch]);
-```
-
-### `sessionStorage` vs `localStorage` vs Cookies
-
-| | `localStorage` | `sessionStorage` | Cookies |
-|-|---------------|------------------|--------|
-| **Capacity** | ~5-10 MB | ~5 MB | ~4 KB |
-| **Lifetime** | Permanent (until manually cleared) | Until tab/window closes | Configurable (`Expires` / `Max-Age`) |
-| **Scope** | Same origin, all tabs | Same origin, **same tab only** | Same origin, sent with every HTTP request |
-| **Sent to server?** | No | No | Yes — automatically with every request |
-| **Access** | JavaScript only | JavaScript only | JavaScript (unless `HttpOnly`) + server |
-| **Use case** | User preferences, theme, cached data | Wizard form state, one-time session data | Auth tokens, session IDs, tracking |
-| **XSS vulnerable?** | Yes | Yes | No (if `HttpOnly` flag set) |
-
-```javascript
-// localStorage — persists across tabs and browser restarts
-localStorage.setItem('theme', 'dark');
-localStorage.getItem('theme');          // 'dark'
-localStorage.removeItem('theme');
-localStorage.clear();                   // Remove all
-
-// sessionStorage — same API, but tab-scoped
-sessionStorage.setItem('step', '3');
-sessionStorage.getItem('step');         // '3' — gone when tab closes
-
-// Cookies — set via document.cookie (or from server via Set-Cookie header)
-document.cookie = 'token=abc123; Secure; SameSite=Strict; Max-Age=3600';
-```
-
-**Security best practices for tokens:**
-- **Auth tokens (JWT):** Store in `HttpOnly` cookies (not accessible via JS → XSS safe)
-- **Never** store sensitive data in `localStorage` — vulnerable to XSS attacks
-- Use `Secure` flag → cookie sent only over HTTPS
-- Use `SameSite=Strict` → prevents CSRF
-
-**When to use what:**
-```
-Auth tokens       → HttpOnly cookies (most secure)
-User preferences  → localStorage (persists across sessions)
-Form wizard state → sessionStorage (auto-clears on tab close)
-Tracking/consent  → cookies (server needs access)
-```
-
----
-
-## Tradeoffs & Pitfalls
-
-- **`==` vs `===`:** Always use `===` (strict equality). `==` does type coercion (`"0" == false` is `true`).
-- **Arrow functions:** No own `this`, `arguments`, or `super`. Can't be used as constructors.
-- **`typeof null === "object"`:** Known JS quirk. Check null explicitly.
-- **Floating point:** `0.1 + 0.2 !== 0.3`. Use `toFixed()` or integer math for money.
-- **Hoisting:** `var` declarations hoist but not assignments. `let`/`const` have temporal dead zone.
-- **Reference vs Value:** Primitives are copied by value. Objects/arrays by reference. Use spread (`...`) or `structuredClone()` for deep copies.
-
----
-
-## Interview Questions
-
-1. **What is hoisting?** Variable/function declarations are moved to top of scope during compilation. `var` → `undefined`, `let`/`const` → TDZ error.
-2. **Explain closures with example.** Function retaining outer scope variables after outer function returns. Used in module pattern, memoization.
-3. **What is the event loop?** Mechanism that processes call stack, microtask queue (Promises), then macrotask queue (setTimeout) in a loop.
-4. **Difference between `==` and `===`?** `==` coerces types before comparing. `===` compares type AND value.
-5. **What is a Promise?** Object representing eventual completion/failure of an async operation. States: pending, fulfilled, rejected.
-6. **`Promise.all` vs `Promise.allSettled` vs `Promise.race`?** `all` = fail-fast on first rejection. `allSettled` = wait for all, return all results. `race` = first to resolve/reject wins.
-7. **What is debouncing vs throttling?** Debounce = execute after delay, reset on new trigger. Throttle = execute at most once per interval.
-8. **Explain prototypal inheritance.** Objects inherit from other objects via prototype chain. `Object.create()`, `class extends`.
-
----
-
-## Tooling & Package Management
-
-### `npm audit`
-
-Scans your project's dependency tree for known security vulnerabilities.
-
-```bash
-# Run a vulnerability audit
-npm audit
-
-# Output: table of vulnerabilities with severity (low/moderate/high/critical)
-
-# Auto-fix vulnerabilities (updates to patched versions)
-npm audit fix
-
-# Force fix — may include breaking major version changes
-npm audit fix --force
-
-# Generate JSON report (useful for CI/CD pipelines)
-npm audit --json
-```
-
-**How it works:**
-1. Reads `package-lock.json` to get exact installed versions
-2. Checks against npm's security advisory database
-3. Reports vulnerable packages, severity, and recommended fix version
-
-**In CI/CD:** Add `npm audit --audit-level=high` to fail builds on high/critical vulnerabilities.
-
-### `package.json` vs `package-lock.json`
-
-| | `package.json` | `package-lock.json` |
-|-|---------------|--------------------|
-| **Purpose** | Project manifest — metadata, scripts, dependency ranges | Exact dependency tree lock |
-| **Version format** | Ranges: `^1.2.3`, `~1.2.3`, `>=1.0.0` | Exact: `1.2.3` |
-| **Created by** | `npm init` or manually | Auto-generated by `npm install` |
-| **Commit to git?** | Always | Always (ensures reproducible builds) |
-| **Editable?** | Yes (manually) | No (auto-managed by npm) |
-| **Contains** | Direct dependencies only | Entire nested dependency tree |
-
-**Version range symbols:**
-```
-^1.2.3  →  >=1.2.3 and <2.0.0  (minor + patch updates allowed)
-~1.2.3  →  >=1.2.3 and <1.3.0  (patch updates only)
-1.2.3   →  exactly 1.2.3       (pinned)
-```
-
-**Why `package-lock.json` matters:**
-- Without it, `npm install` on different machines may install different versions (within the `^`/`~` range)
-- Guarantees every developer and CI/CD gets the exact same dependency versions
-- Makes builds reproducible and deterministic
-
-**Common scenario:**
-```bash
-# Developer A adds a package
-npm install lodash      # Updates both package.json AND package-lock.json
-
-# Developer B pulls and installs
-npm install             # Reads package-lock.json → gets exact same versions
-
-# To update all dependencies to latest allowed by ranges
-npm update              # Updates package-lock.json
-```
-
----
-
-## Quick Reference
-
-```
-SCOPE:        var=function  let/const=block
-ASYNC:        Callbacks → Promises → Async/Await
-EVENT LOOP:   Stack → Microtasks (ALL) → Macrotask (ONE) → repeat
-THIS:         Global | Method | Constructor | Explicit | Arrow (lexical)
-COPY:         Shallow: spread/Object.assign  Deep: structuredClone()
-IMMUTABLE:    preventExtensions < seal < freeze
-EQUALITY:     Always use === (strict)
-TYPES:        string, number, boolean, null, undefined, symbol, bigint, object
-FALSY:        false, 0, "", null, undefined, NaN
-```
-
-
-<!-- ===== FILE: frontend/react.md ===== -->
-
 # React — Interview Preparation
 
 ---
@@ -3193,152 +2618,718 @@ GLOBAL:   Context (simple) | Redux (complex) | Zustand (lightweight) | Recoil (a
 REDUX:    dispatch → reducer → store → UI
 HOOKS:    useState | useEffect | useContext | useReducer | useMemo | useCallback | useRef
 ```
+# SQL — Interview Preparation
 
+---
 
-<!-- ===== FILE: resume/professional-resume-writing-guidelines.md ===== -->
+## Core Concepts
 
-# Original File: Professional-Resume-Writing-Guidelines.txt
+### Normalization vs Denormalization
 
-## Content
+| | Normalization | Denormalization |
+|-|--------------|----------------|
+| Goal | Eliminate redundancy | Improve read performance |
+| Data integrity | High | Lower (redundant data) |
+| Write performance | Better | Worse (update anomalies) |
+| Read performance | Slower (more joins) | Faster (fewer joins) |
+| Use case | OLTP (transactional) | OLAP (analytics/reporting) |
 
-Summary Section
-Instead of a traditional objective statement, consider using a resume summary or brand statement. This concise snapshot (aim for 60-100 words) serves as your elevator pitch, quickly conveying your value to potential employers.
+**Normal Forms:**
+- **1NF:** Atomic values, no repeating groups (split "Full Name" → FirstName, MiddleName, LastName)
+- **2NF:** 1NF + all non-key columns fully depend on the *entire* primary key
+- **3NF:** 2NF + no non-key column depends on another non-key column
 
-Why a Resume Summary?
+### Indexes
 
-Not always required: If you've included a cover letter, your summary might be redundant.
-Valuable for quickly grabbing attention and highlighting your most relevant qualifications, as well as filling the gap if you're not submitting a cover letter.
-Writing an Effective Summary
+| | Clustered | Non-Clustered |
+|-|-----------|---------------|
+| Data storage | Rows stored in index order | Separate structure with pointers to rows |
+| Per table | Only 1 | Many |
+| Speed | Faster for range queries | Faster for specific lookups |
+| Default | Created on Primary Key | Must create explicitly |
+| Structure | B-Tree (leaf = actual data) | B-Tree (leaf = pointer to data) |
 
-Focus on:
+**Choosing non-clustered indexes:**
+- Columns in `WHERE`, `ORDER BY`, `GROUP BY` clauses
+- Keep clustered index short (columns may appear in non-clustered indexes)
+- **Covering index:** Includes all columns needed by query → no table lookup needed
+- Avoid over-indexing (storage + write overhead)
 
-Who you are and what you do: Clearly state your professional identity and area of expertise. Make sure this aligns with the job you're applying for.
+### Index Cardinality
 
-Your achievements: Highlight your most impressive accomplishments that are relevant to the target role. Think about:
+Index cardinality refers to the **uniqueness of values** in an indexed column — how many distinct values exist relative to the total number of rows.
 
-Measurable results you've achieved (e.g., increased sales by X%, reduced costs by Y%).
-Awards, recognition, or promotions you've received.
-Problems you've solved or challenges you've overcome.
-Times you've exceeded expectations or gone above and beyond.
-Your goal is to demonstrate that you're not only skilled and experienced, but that you have a proven track record of delivering results.
+**High Cardinality** — many unique values (`UserId`, `Email`, `OrderId`):
+```txt
+1M rows → 1M unique emails
+```
+✅ Very efficient — index lookup narrows down results quickly, fewer rows need scanning.
+```sql
+SELECT * FROM Users WHERE Email = 'abc@test.com';
+-- Index on Email is highly effective
+```
 
-Work Experience
-This is the section of your resume in which you detail your career history. It's here that you demonstrate that you have the relevant skills, experience and background for the job you are applying for. This is typically the longest section on your resume.
+**Low Cardinality** — very few unique values (`Gender`, `Status`, `IsActive`):
+```txt
+1M rows → only 2 values (true/false)
+```
+❌ Often less useful — database may prefer full table scan over index lookup + row fetch.
+```sql
+SELECT * FROM Users WHERE IsActive = 1;
+-- If 95% rows are active, index adds overhead
+```
 
-How to describe your experience
-Incorporate bullets into your resume to improve skim value.
+**Selectivity:**
 
-For present roles, write in the simple present tense (i.e., practices, manages, performs)
+How effectively an index filters rows.
+```txt
+Selectivity = unique values / total rows
+```
+Higher selectivity → better index performance.
 
-For past activities, write in the simple past tense (i.e., achieved, managed, performed).
+**Good vs Poor Index Candidates:**
 
-Include context for the position: What kind of company do you work for? What kind of products or services do they offer? What kind of customers do they work with (i.e., businesses, individuals)? Which industry do they operate in? How large are they (i.e., 10 locations? 100 locations? 500 personnel?).
+| Column | Cardinality | Good Index? |
+|---|---|---|
+| Email | High | ✅ |
+| UserId | High | ✅ |
+| OrderId | High | ✅ |
+| Gender | Low | ❌ |
+| IsActive | Low | ❌ |
+| Status | Low/Medium | Depends |
 
-Describe how your work supports the company and their bottom line (i.e., which products do you support? What kind of customers do you support? Which business unit do you work for?)
+**Composite Index Best Practice:**
+```sql
+CREATE INDEX idx_user_status_created
+ON Orders(UserId, Status, CreatedAt);
+```
+Place high-cardinality columns first — `UserId` before `Status` — for better filtering efficiency.
 
-What are your main functions? Don't worry about including every tiny detail - focus on the things that occupy most of your time and/or the things that are relevant to your next job.
+**MongoDB Note:**
+High-cardinality fields are ideal for indexes. Indexing low-cardinality fields (e.g., `isDeleted`) increases index size with little benefit.
 
-Focus on how your work had an impact to the company's bottom line. This could take a variety of forms, such as:
+**Interview Answer:**
+"Index cardinality refers to the uniqueness of values in an indexed column. High-cardinality indexes like email or user ID are more efficient because they narrow results quickly, whereas low-cardinality indexes like boolean flags are often less useful because many rows share the same value."
 
-landing new clients,
-saving on costs,
-automating tasks and saving on manual hours,
-killing your sales targets,
-earning performance-related awards or praise from management, or
-successfully pulling off large-scale projects
-Bullet Point Structuring
+### Indexing Decision — Employee Table Scenario
 
-PAR (Problem-Action-Result): A common and widely used formula that's ideal for showing accomplishments, highlighting technical skills, and demonstrating problem-solving abilities. Use it when you want to emphasize the impact of your work and how you achieved results.
+**Table:** `Employee(Id, Status)`
+**Question:** Which column should be indexed?
 
-Example #1: "Reduced customer support response time by 20% by implementing a new ticketing system and optimizing workflow processes."
+**Answer:** "It depends on the query patterns and cardinality of the column."
 
-Example #2: "Overcame tight project deadlines by prioritizing tasks, coordinating resources, and effectively communicating with stakeholders."
+**Index on `Id`:**
+- High cardinality, unique values, extremely selective lookups
+- `Id` is typically already the Primary Key → automatically has a clustered/unique index
+```sql
+SELECT * FROM Employee WHERE Id = 101;
+-- Directly locates a single row
+```
 
-STAR (Situation-Task-Action-Result): This formula provides a more detailed narrative, making it suitable for behavioral interview questions and detailed job descriptions. It's great for demonstrating specific skills and competencies in context.
+**What about `Status`?** (values: `Active`, `Inactive`, `Pending`)
+- Low-cardinality column — if 90% employees are Active, selectivity is poor
+- Optimizer may choose full table scan over index lookup
+```sql
+SELECT * FROM Employee WHERE Status = 'Active';
+-- Index may be ignored if most rows match
+```
 
-Example #1: "Managed inventory levels and ensured product availability while minimizing stockouts in a fast paced retail setting; achieved a 15% reduction in inventory costs."
+**When low-cardinality indexes still help:**
 
-Example #2: "Quickly diagnosed a server outage and implemented a temporary workaround, minimizing downtime for critical business operations and preventing thousands of dollars in associated losses."
+1. **Combined with another column** — selectivity improves:
+```sql
+CREATE INDEX idx_status_department ON Employee(Status, DepartmentId);
+```
 
-Result-First: This formula leads with the quantifiable outcome, immediately grabbing the reader's attention. It's effective when you have impressive results to showcase and want to make a strong impact.
+2. **Table is very large** — even low selectivity can reduce I/O on huge datasets
 
-Example: "Increased sales revenue by 18% through targeted marketing campaigns and effective sales strategies."
+3. **Queries heavily filter by status** — dashboards, background jobs, archival cleanup
 
-Action Verb + Skill + Result: Highlights the action taken, the skill applied, and the achieved result. It's concise and easy to read, and is commonly used for engineering/technical resumes.
+4. **Partial / Filtered indexes** (PostgreSQL):
+```sql
+CREATE INDEX idx_active_employees ON Employee(Id) WHERE Status = 'Active';
+```
 
-Example: "Developed a user-friendly website using HTML, CSS, and JavaScript, resulting in a 30% increase in website traffic."
+**What the interviewer is testing:**
 
-Start with your most recent experience and continue in reverse chronological order. Your most recent role should also contain the most bullet points and the length of each section can decrease as you work back through your career.
+| Concept | What They Want to Hear |
+|---|---|
+| Cardinality | High vs low uniqueness awareness |
+| Selectivity | Why DB may ignore an index |
+| Query Optimizer | Full scan can beat index lookup |
+| Tradeoffs | Reads vs writes cost |
+| Real-world thinking | "Depends on workload" mindset |
 
-Feature your most relevant bullet points first. For each job application, you should review what you have written so that you focus on the experience that is most relevant to the role you are applying for. Are there duties in the job description which you have performed in your previous roles? If so, make sure to include these examples at the top of each role in your experience section.
+**Senior-level answer:**
+"`Id` is the obvious candidate — high cardinality, typically already indexed as the primary key. For `Status`, it depends on data distribution and query frequency. A standalone index on a low-cardinality column may not be efficient since the optimizer may prefer a table scan. However, if the app frequently filters by status or the table is very large, a composite or filtered index could still help. I'd decide based on actual query patterns and execution plans rather than blindly indexing every searchable column."
 
-DON'T DO THIS
+### Stored Procedure vs Function
 
-Use generic statements.
+| | Stored Procedure | Function |
+|-|-----------------|----------|
+| Return value | Optional (can return 0 or multiple) | Must return a value |
+| Parameters | Input + Output | Input only |
+| DML statements | SELECT + INSERT/UPDATE/DELETE | SELECT only |
+| Transaction mgmt | Yes | No |
+| Try-Catch | Yes | No |
+| Call in SELECT | No | Yes |
+| Compilation | Precompiled (cached plan) | Compiled each execution |
 
-Use repetitive terms, phrases, or sentences.
+**Function types:**
+- **Scalar:** Returns single value (`ABS()`, `ROUND()`, custom)
+- **Inline Table-Valued:** Returns table from single SELECT
+- **Multi-Statement Table-Valued:** Returns table from multiple statements
 
-Use overly fancy/flowery language. Simple is always better.
+---
 
-Skills and Keywords
-Keywords are words or phrases found in the job posting and are important skills or competencies required to fulfill the role. Including them on your resume will enable you to rank higher in a recruiter search. This doesn't guarantee you'll get the job or the interview, but it will increase the likelihood that your resume will be seen first.
+## Deep Dive
 
-Technical Skills
-Technical skills on a resume showcase specific knowledge and expertise in using tools, software, hardware, or specialized processes within a particular field. They demonstrate your ability to perform job-specific tasks and are crucial for many positions, especially those in technology, engineering, science, and other technical fields.
+### Common Query Patterns
 
-There are different types of technical skills, which can be broadly categorized as:
+**Nth highest salary (using CTE + ROW_NUMBER):**
+```sql
+WITH CTE AS (
+    SELECT EmpName, Salary,
+           ROW_NUMBER() OVER (ORDER BY Salary DESC) AS RN
+    FROM Employee
+)
+SELECT * FROM CTE WHERE RN = @N;
+```
 
-Hard Technical Skills: These involve hands-on, practical knowledge of specific tools, software, hardware, or techniques. Examples include:
+**Max salary per department:**
+```sql
+SELECT DeptName, MAX(Salary)
+FROM Employee e
+JOIN Department d ON e.DeptId = d.DeptID
+GROUP BY DeptName;
+```
 
-Programming languages: Java, Python, C++, JavaScript, etc.
-Software applications: Microsoft Office Suite, Adobe Creative Suite, CAD software, project management software, etc.
-Operating systems: Windows, macOS, Linux
-Data analysis tools: SQL, R, SAS
-Networking protocols: TCP/IP, DNS, DHCP
-Cloud computing platforms: AWS, Azure, Google Cloud
-Specific technical processes: Machine learning, statistical analysis, web development
-Soft Technical Skills: These skills involve using technical knowledge to solve problems, analyze data, communicate effectively, and collaborate with others. Examples include:
+**Self-join — employees who are managers:**
+```sql
+SELECT e1.Name AS Employee, e2.Name AS Manager
+FROM Employee e1
+LEFT JOIN Employee e2 ON e1.ManagerId = e2.Id;
+```
 
-Troubleshooting: Identifying and resolving technical issues
-Data analysis: Collecting, processing, and interpreting data
-Project management: Planning, organizing, and executing technical projects
-Technical writing: Creating clear and concise technical documentation
-Presentation skills: Communicating technical information effectively to both technical and non-technical audiences
-When incorporating technical skills into resume bullet points, a common and effective structure to follow is the PAR (Problem-Action-Result) method:
+**Find duplicates:**
+```sql
+-- Find which values are duplicated and how many times
+SELECT Name, COUNT(*) AS DuplicateCount
+FROM Employee
+GROUP BY Name
+HAVING COUNT(*) > 1;
 
-Problem (or Project): Briefly describe the challenge, project, or task you faced. This sets the context for your technical skill application.
-Action: Explain the specific actions you took to address the problem or complete the task. Highlight the technical skills you used and how you applied them.
-Result: Quantify the positive outcome or impact of your actions. Emphasize the results achieved through your technical skills, using numbers or percentages if possible.
-Here's an example of a PAR bullet point showcasing technical skills:
+-- Find all duplicate rows with full details
+WITH CTE AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY Name ORDER BY Id) AS RN
+    FROM Employee
+)
+SELECT * FROM CTE WHERE RN > 1;   -- duplicate rows only
+-- SELECT * FROM CTE WHERE Name IN (SELECT Name FROM CTE WHERE RN > 1);  -- all rows including originals
+```
 
-Problem: Website traffic was declining due to slow page load times and poor user experience.
-Action: Implemented website optimization techniques, including image compression, code minification, and caching, using HTML, CSS, and JavaScript. Improved site navigation and mobile responsiveness.
-Result: Increased website traffic by 25% within three months, decreased page load time by 50%, and improved user engagement metrics by 15%.
-This structure effectively demonstrates your technical skills in a context that's meaningful to employers. It shows not only that you possess certain skills but also how you have successfully applied them to achieve tangible results.
+**Delete duplicates (keep first):**
+```sql
+WITH CTE AS (
+    SELECT Id, ROW_NUMBER() OVER (PARTITION BY Name ORDER BY Id) AS RN
+    FROM Employee
+)
+DELETE FROM Employee WHERE Id IN (SELECT Id FROM CTE WHERE RN > 1);
+```
 
-How you present your content matters
-The difference between a forgettable resume and one that lands interviews often comes down to how you describe your experiences. Turn basic task descriptions into achievement statements that showcase your impact.
+**Alternate rows (even/odd):**
+```sql
+WITH CTE AS (
+    SELECT ROW_NUMBER() OVER (ORDER BY Id) AS RowNum, *
+    FROM Employee
+)
+SELECT * FROM CTE WHERE RowNum % 2 = 0; -- even rows
+```
 
-Start every bullet point with a strong action verb that captures what you actually accomplished:
+**Handle NULL parameters:**
+```sql
+WHERE (@code IS NULL OR code = @code)
+```
 
-Instead of "Helped with..." use "Initiated," "Led," "Created," "Developed"
-Replace "Was responsible for..." with "Managed," "Coordinated," "Implemented"
-Transform "Worked on..." to "Delivered," "Executed," "Streamlined"
-Quantify wherever possible, even if the numbers are small:
+**Names ending with a specific character (LIKE pattern):**
+```sql
+SELECT DISTINCT Name
+FROM student_marks
+WHERE Name LIKE '%a';
 
-Increased Instagram engagement by 25% through consistent content strategy
-Reduced processing time by 15% by automating data entry tasks
-Managed study group of 12 students, improving average test scores by 18%
-When you can't find specific numbers, focus on scope and scale:
+-- Other LIKE patterns:
+-- 'A%'     → starts with A
+-- '%an%'   → contains "an"
+-- '_a%'    → second character is "a"
+-- '[ABC]%' → starts with A, B, or C
+```
 
-Coordinated logistics for three campus-wide events
-Collaborated with teams across five departments
-Maintained detailed documentation used by entire 20-person organization
-Even without formal work experience, you can show value by being specific and detailed in how you describe your work.
+**Total marks per student (aggregate across subjects):**
+```sql
+SELECT Name, SUM(Marks) AS TotalMarks
+FROM student_marks
+GROUP BY Name;
 
+-- With filtering: only students with total > 200
+SELECT Name, SUM(Marks) AS TotalMarks
+FROM student_marks
+GROUP BY Name
+HAVING SUM(Marks) > 200;
+```
 
-<!-- ===== FILE: system-design/design-patterns.md ===== -->
+> **`WHERE` vs `HAVING`:** `WHERE` filters rows *before* grouping. `HAVING` filters groups *after* aggregation. You cannot use aggregate functions in `WHERE`.
 
+### Temp Tables vs Table Variables
+
+| | Temp Table (`#temp`) | Table Variable (`@table`) |
+|-|---------------------|--------------------------|
+| Storage | TempDB | Memory |
+| Transactions | Participates | Does not participate |
+| Indexes | Full index support | Only via PK/UNIQUE constraints |
+| Scope | Session (local `#`) or global (`##`) | Batch/scope |
+| Performance | Better for large datasets | Faster for small datasets |
+
+### Views
+- Virtual table based on a SELECT query. No physical storage.
+- Simplifies complex queries. Can be indexed for performance.
+- Use for: reusable queries, row-level security, abstraction layer.
+
+### Common Table Expressions (CTE)
+```sql
+WITH CTE AS (
+    SELECT ... FROM ...
+)
+SELECT * FROM CTE;
+```
+- Temporary named result set within a single statement.
+- Can be recursive (hierarchical data like org charts).
+- Can be referenced multiple times in the same query.
+- Not stored as an object.
+
+### Triggers & Magic Tables
+- **Triggers:** Auto-execute SQL on INSERT/UPDATE/DELETE events.
+- **`INSERTED` table:** Contains new rows (on INSERT/UPDATE).
+- **`DELETED` table:** Contains old rows (on DELETE/UPDATE).
+
+### Composite Keys
+```sql
+CREATE TABLE OrderItems (
+    OrderId INT,
+    ProductId INT,
+    PRIMARY KEY (OrderId, ProductId)  -- composite key
+);
+```
+- Combination of columns that uniquely identifies a row.
+- Used when no single column is unique.
+
+**Composite index behavior:** If index is on `(A, B, C)`:
+- `WHERE A = ? AND B = ?` → index used (leftmost prefix)
+- `WHERE B = ? AND C = ?` → index NOT used (missing leading column)
+
+---
+
+## Real-World Usage
+
+### Query Performance Optimization (15 tips)
+1. Define Primary Keys and Foreign Keys
+2. Normalize the database
+3. Avoid `SELECT *` — name specific columns
+4. Create appropriate clustered/non-clustered indexes
+5. Use `EXISTS` instead of `IN` for existence checks
+6. Choose appropriate data types (varchar > nvarchar if ASCII-only)
+7. Keep clustered index columns short
+8. Use joins instead of subqueries
+9. Avoid cursors (use set-based operations)
+10. Use table variables for small datasets, temp tables for large
+11. Use schema name before objects (`dbo.Employee`)
+12. Use `SET NOCOUNT ON` to reduce network traffic
+13. Use `TRY-CATCH` to handle deadlocks gracefully
+14. Don't prefix user SPs with `sp_` (SQL Server checks `master` DB first)
+15. Use covering indexes to avoid table lookups
+
+### SQL Profiler / Execution Plans
+- **Execution Plan:** `CTRL + M` in SSMS. Shows how SQL Server processes query.
+- **SQL Profiler:** Captures and analyzes SQL events. Find slow queries.
+- Look for: table scans (bad), index seeks (good), high-cost operators.
+
+---
+
+## Tradeoffs & Pitfalls
+
+- **Over-indexing:** Each index = storage + write overhead on INSERT/UPDATE/DELETE.
+- **`COUNT(*)` vs `COUNT(column)`:** `COUNT(*)` counts NULLs. `COUNT(column)` skips NULLs.
+- **Cursors:** Extremely slow. Replace with set-based operations or CTEs.
+- **`UNION` vs `UNION ALL`:** UNION removes duplicates (slower). UNION ALL keeps all rows (faster).
+- **`IN` vs `EXISTS`:** EXISTS stops at first match (faster for correlated subqueries).
+- **Temp tables in production:** Clean up after use. Global temp tables (`##`) visible to all sessions.
+- **NULL comparisons:** `NULL = NULL` is FALSE. Use `IS NULL` / `IS NOT NULL`.
+- **COALESCE:** Returns first non-null value. Use for default values.
+
+---
+
+## Interview Questions — Rapid Fire
+
+1. **What is normalization?** DB design technique to eliminate data redundancy. 1NF→2NF→3NF.
+2. **Clustered vs Non-Clustered index?** Clustered = data stored in index order (1 per table). Non-clustered = separate structure with pointers (many per table).
+3. **SP vs Function?** SP can do DML + transactions + output params. Function must return value, SELECT only, callable in SELECT.
+4. **What is a CTE?** Temporary named result set defined with `WITH`. Can be recursive.
+5. **How to find Nth highest salary?** `ROW_NUMBER() OVER (ORDER BY Salary DESC)` in CTE, filter `WHERE RN = N`.
+6. **How to delete duplicates?** `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`, delete where RN > 1.
+7. **Temp table vs Table variable?** Temp = TempDB + transactions + indexes. Table var = memory + faster for small data.
+8. **What is a trigger?** SQL code auto-executed on table DML events. Uses INSERTED/DELETED magic tables.
+9. **`UNION` vs `UNION ALL`?** UNION removes duplicates. UNION ALL keeps all (faster).
+10. **How to optimize slow query?** Check execution plan, add indexes, avoid SELECT *, use EXISTS over IN, avoid cursors.
+
+---
+
+## Quick Reference
+
+```
+NORMAL FORMS:   1NF (atomic) → 2NF (full key dependency) → 3NF (no transitive dependency)
+INDEXES:        Clustered (1/table, data=index) | Non-clustered (many, pointer to data)
+JOINS:          INNER | LEFT | RIGHT | FULL OUTER | CROSS | SELF
+FUNCTIONS:      Scalar (single value) | Inline TVF | Multi-Statement TVF
+TEMP:           #local (session) | ##global (all sessions) | @variable (memory)
+AGGREGATES:     COUNT | SUM | AVG | MIN | MAX | GROUP BY + HAVING
+WINDOW:         ROW_NUMBER() | RANK() | DENSE_RANK() | OVER (PARTITION BY ... ORDER BY ...)
+NULL:           IS NULL | COALESCE(a,b,c) | NULLIF(a,b)
+PERF:           Execution plan | SQL Profiler | SET NOCOUNT ON | covering indexes
+```
+# MongoDB — Interview Preparation
+
+---
+
+## Core Concepts
+
+### Document Model
+
+MongoDB stores data as BSON (Binary JSON) documents inside collections.
+
+```json
+{
+  "_id": ObjectId("64f1a2b3c4d5e6f7a8b9c0d1"),
+  "name": "Alice",
+  "email": "alice@test.com",
+  "orders": [
+    { "item": "Laptop", "price": 1200 },
+    { "item": "Mouse", "price": 25 }
+  ]
+}
+```
+
+| SQL Term | MongoDB Term |
+|---|---|
+| Database | Database |
+| Table | Collection |
+| Row | Document |
+| Column | Field |
+| JOIN | Embedding / `$lookup` |
+| PRIMARY KEY | `_id` (auto-generated) |
+
+### Embedding vs Referencing
+
+| | Embedding | Referencing |
+|-|-----------|-------------|
+| Structure | Nested subdocuments | Separate collections with ObjectId |
+| Reads | Faster (single query) | Slower (multiple queries / `$lookup`) |
+| Writes | Slower for large nested data | Easier to update independently |
+| Data duplication | Possible | Minimal |
+| Document size | Watch 16MB limit | Not a concern |
+| Use when | Data accessed together, 1:few | Many-to-many, large/growing subdocs |
+
+**Embedding:**
+```json
+{
+  "name": "Alice",
+  "address": { "city": "NYC", "zip": "10001" }
+}
+```
+
+**Referencing:**
+```json
+// users collection
+{ "_id": ObjectId("..."), "name": "Alice", "addressId": ObjectId("...") }
+
+// addresses collection
+{ "_id": ObjectId("..."), "city": "NYC", "zip": "10001" }
+```
+
+---
+
+## Deep Dive
+
+### Aggregation Pipeline
+
+The aggregation pipeline processes documents through a sequence of stages. Each stage transforms the data and passes results to the next stage.
+
+```txt
+Collection → $match → $group → $sort → $project → Result
+```
+
+#### Common Stages
+
+| Stage | Purpose | SQL Equivalent |
+|---|---|---|
+| `$match` | Filter documents | `WHERE` |
+| `$group` | Group and aggregate | `GROUP BY` |
+| `$project` | Shape output fields | `SELECT` |
+| `$sort` | Order results | `ORDER BY` |
+| `$limit` | Limit result count | `LIMIT` / `TOP` |
+| `$skip` | Skip documents | `OFFSET` |
+| `$unwind` | Flatten arrays | `JOIN` on array |
+| `$lookup` | Join collections | `LEFT JOIN` |
+| `$addFields` | Add computed fields | Computed column |
+| `$count` | Count documents | `COUNT(*)` |
+| `$facet` | Multiple pipelines in parallel | Multiple queries |
+
+#### `$match` — Filter Documents
+
+Always place `$match` as early as possible to reduce documents processed by later stages.
+
+```javascript
+db.orders.aggregate([
+  { $match: { status: "completed" } }
+]);
+```
+
+Equivalent SQL:
+```sql
+SELECT * FROM orders WHERE status = 'completed';
+```
+
+#### `$group` — Group and Aggregate
+
+```javascript
+db.orders.aggregate([
+  {
+    $group: {
+      _id: "$customerId",
+      totalSpent: { $sum: "$amount" },
+      orderCount: { $count: {} },
+      avgOrder: { $avg: "$amount" },
+      maxOrder: { $max: "$amount" },
+      minOrder: { $min: "$amount" }
+    }
+  }
+]);
+```
+
+Equivalent SQL:
+```sql
+SELECT customerId, SUM(amount), COUNT(*), AVG(amount), MAX(amount), MIN(amount)
+FROM orders
+GROUP BY customerId;
+```
+
+**Accumulator operators:** `$sum`, `$avg`, `$min`, `$max`, `$count`, `$push`, `$addToSet`, `$first`, `$last`
+
+#### `$project` — Shape Output
+
+```javascript
+db.users.aggregate([
+  {
+    $project: {
+      fullName: { $concat: ["$firstName", " ", "$lastName"] },
+      email: 1,
+      _id: 0
+    }
+  }
+]);
+```
+
+#### `$sort` + `$limit` — Top N Pattern
+
+```javascript
+// Top 5 customers by spending
+db.orders.aggregate([
+  { $group: { _id: "$customerId", totalSpent: { $sum: "$amount" } } },
+  { $sort: { totalSpent: -1 } },
+  { $limit: 5 }
+]);
+```
+
+#### `$unwind` — Flatten Arrays
+
+Deconstructs an array field into one document per element.
+
+```javascript
+// Document: { name: "Alice", tags: ["dev", "lead"] }
+// After $unwind on tags:
+// { name: "Alice", tags: "dev" }
+// { name: "Alice", tags: "lead" }
+
+db.users.aggregate([
+  { $unwind: "$tags" },
+  { $group: { _id: "$tags", count: { $sum: 1 } } },
+  { $sort: { count: -1 } }
+]);
+```
+
+#### `$lookup` — Join Collections
+
+```javascript
+db.orders.aggregate([
+  {
+    $lookup: {
+      from: "customers",
+      localField: "customerId",
+      foreignField: "_id",
+      as: "customerDetails"
+    }
+  },
+  { $unwind: "$customerDetails" }
+]);
+```
+
+Equivalent SQL:
+```sql
+SELECT * FROM orders
+LEFT JOIN customers ON orders.customerId = customers._id;
+```
+
+#### `$facet` — Multiple Aggregations in One Query
+
+```javascript
+db.products.aggregate([
+  {
+    $facet: {
+      totalCount: [{ $count: "count" }],
+      byCategory: [
+        { $group: { _id: "$category", count: { $sum: 1 } } }
+      ],
+      topRated: [
+        { $sort: { rating: -1 } },
+        { $limit: 5 }
+      ]
+    }
+  }
+]);
+```
+
+#### Full Pipeline Example
+
+Revenue per category for completed orders, sorted descending:
+
+```javascript
+db.orders.aggregate([
+  { $match: { status: "completed" } },
+  { $unwind: "$items" },
+  {
+    $group: {
+      _id: "$items.category",
+      totalRevenue: { $sum: "$items.price" },
+      itemsSold: { $sum: 1 }
+    }
+  },
+  { $sort: { totalRevenue: -1 } },
+  { $project: { category: "$_id", totalRevenue: 1, itemsSold: 1, _id: 0 } }
+]);
+```
+
+Equivalent SQL:
+```sql
+SELECT category, SUM(price) AS totalRevenue, COUNT(*) AS itemsSold
+FROM orders
+JOIN order_items ON orders.id = order_items.orderId
+WHERE status = 'completed'
+GROUP BY category
+ORDER BY totalRevenue DESC;
+```
+
+### Aggregation Performance Tips
+
+- Place `$match` and `$limit` early to reduce documents flowing through the pipeline
+- Use indexes — `$match` and `$sort` at the start can leverage indexes
+- Avoid `$unwind` on large arrays when possible — can explode document count
+- Use `allowDiskUse: true` for memory-heavy aggregations (100MB pipeline limit)
+- `$project` early to drop unneeded fields and reduce memory usage
+
+### Interview Answer
+
+"MongoDB's aggregation pipeline processes documents through sequential stages like `$match`, `$group`, `$sort`, and `$project`. It's similar to SQL's `WHERE`, `GROUP BY`, `ORDER BY`, and `SELECT`. The key is stage ordering — filtering early with `$match` reduces the data processed by expensive stages like `$group` and `$unwind`."
+
+---
+
+### Query Optimization
+
+MongoDB query optimization focuses on reducing collection scans, improving query selectivity, optimizing aggregation pipelines, designing proper indexes, and minimizing memory-intensive operations.
+
+Optimization decisions should always be driven by query patterns, execution plans, profiler logs, and production metrics.
+
+#### 1. Compound Indexing
+
+**Problem** — without proper indexing, MongoDB performs collection scans:
+```javascript
+db.contracts.find({
+  tenantId: 101,
+  status: "ACTIVE"
+}).sort({ createdAt: -1 });
+```
+
+**Solution** — compound index that supports filtering + sorting:
+```javascript
+db.contracts.createIndex({
+  tenantId: 1,
+  status: 1,
+  createdAt: -1
+});
+```
+Avoids in-memory sort operations and enables index-covered queries.
+
+#### 2. Pipeline Stage Ordering
+
+**Poor pipeline** — `$lookup` processes entire collection first:
+```javascript
+[
+  { $lookup: {...} },
+  { $match: { tenantId: 101 } }
+]
+```
+
+**Optimized** — filter early to reduce intermediate dataset:
+```javascript
+[
+  { $match: { tenantId: 101 } },
+  { $lookup: {...} }
+]
+```
+
+#### 3. Elasticsearch Offloading
+
+Regex-based searches on large MongoDB collections are expensive. Use Elasticsearch for full-text search, fuzzy matching, and complex search filtering — reduces MongoDB load and improves search latency.
+
+#### 4. Use Projections
+
+Avoid fetching unnecessary fields:
+```javascript
+// Bad
+db.users.find({});
+
+// Good
+db.users.find({}, { name: 1, email: 1 });
+```
+
+#### 5. Pagination
+
+Avoid `skip()` for large datasets — prefer cursor-based or indexed pagination.
+
+#### 6. Measuring Improvements
+
+Use `explain()`, MongoDB profiler, APM tools, query execution stats, and API latency metrics.
+
+#### Interview Answer
+
+"We optimized MongoDB performance using explain plans, compound indexing, aggregation tuning, and query selectivity improvements. We also offloaded expensive text-search workloads to Elasticsearch. The optimizations were driven by actual query patterns and production profiling rather than blindly adding indexes."
+
+---
+
+## Quick Reference
+
+```txt
+CRUD:           insertOne | insertMany | find | updateOne | updateMany | deleteOne | deleteMany
+AGGREGATION:    $match | $group | $project | $sort | $limit | $skip | $unwind | $lookup | $facet
+ACCUMULATORS:   $sum | $avg | $min | $max | $count | $push | $addToSet | $first | $last
+```
 # Design Patterns — Interview Preparation
 
 ---
@@ -3618,10 +3609,6 @@ MICRO:        CQRS (read/write split) | Saga (distributed rollback) | API Gatewa
 DI:           Constructor | Property | Method
 DI LIFETIME:  Singleton | Scoped | Transient
 ```
-
-
-<!-- ===== FILE: system-design/system-design.md ===== -->
-
 # System Design & Microservices — Interview Preparation
 
 ---
@@ -3839,6 +3826,118 @@ user$.subscribe(user => console.log('Logged in:', user?.name));
 
 ---
 
+## Kafka Event Streaming Architecture
+
+### High-Level Architecture
+```
+Vehicle Devices
+      ↓
+Ingestion APIs
+      ↓
+Kafka Producers
+      ↓
+Kafka Topics
+      ↓
+Consumer Services
+      ↓
+MongoDB / PostgreSQL / Analytics
+```
+
+### Why Kafka?
+Kafka provides durability, replay capability, high throughput, fault tolerance, and horizontal scalability. Useful for high-throughput systems, decoupled architectures, and scalable event processing.
+
+### Example: Telemetry Platform
+
+Vehicle devices continuously send GPS coordinates, speed, fuel data, ignition state, and sensor readings. Backend ingestion APIs validate requests and publish events into Kafka topics. Consumer services process analytics, notifications, dashboard updates, persistence, and alerts.
+
+### Key Concepts
+
+**Partitions:**
+Topics are partitioned by `vehicleId` / `deviceId` for horizontal scaling and ordered processing per device.
+
+**Consumer Groups:**
+Used for parallel processing, workload distribution, and scalability.
+
+**Retry Handling:**
+Failed events are retried with backoff and eventually pushed to DLQ (Dead Letter Queue).
+
+---
+
+## Payment System Design
+
+### Problem
+Implement User A transfers money to User B — at large scale.
+
+### Incorrect Approach
+One long-running DB transaction for the entire flow. Problems: lock contention, poor scalability, transaction bottlenecks, throughput collapse.
+
+### Production-Grade Approach
+Use short-lived transactions, async processing, event-driven architecture, queues, and idempotency.
+
+### Architecture
+```
+User Initiates Payment
+          ↓
+API Validation
+          ↓
+Create Payment Record (PENDING)
+          ↓
+Publish Payment Event to Queue
+          ↓
+Payment Worker Consumes Event
+          ↓
+Debit Sender → Credit Receiver → Insert Ledger Entry → Commit Transaction
+          ↓
+Update Payment Status → Send Notification
+```
+
+### API Layer
+```javascript
+POST /transfer
+
+validateRequest();
+createPaymentRecord({ status: "PENDING" });
+publishToQueue(paymentEvent);
+return 202 Accepted;
+```
+Key idea: API returns quickly, processing happens asynchronously.
+
+### Consumer Layer
+```javascript
+consumePaymentEvent(event) {
+   beginTransaction();
+   debit(sender);
+   credit(receiver);
+   insertLedgerEntry();
+   commitTransaction();
+   updatePaymentStatus("SUCCESS");
+}
+```
+
+### Why This Works
+- Lightweight APIs with short DB transactions
+- Reduced lock contention
+- Scalable consumers with retry handling
+- Failure isolation
+
+### Critical Payment Concepts
+
+**Idempotency:** Prevent duplicate transfers during retries using unique `requestId` / `paymentId`. Repeated requests are safely ignored.
+
+**Retry Handling:** Retry queues, exponential backoff, DLQ.
+
+**Ledger-Based Accounting:** Never directly overwrite balances — maintain immutable transaction ledger and audit trail.
+
+### Related Patterns
+- **Saga Pattern:** Distributed transaction orchestration with compensating transactions
+- **Outbox Pattern:** Reliable event publishing — prevents DB-event inconsistencies
+
+### Interview Answer
+
+"For large-scale payment systems, I would avoid long-running synchronous database transactions. Instead, I'd create a pending payment record and publish an event to a durable queue like Kafka. Dedicated workers would process transfers using short-lived ACID transactions only for balance updates. This minimizes lock contention and allows horizontal scaling. I'd also implement idempotency, retries, ledger entries, and DLQ handling for resiliency."
+
+---
+
 ## Tradeoffs
 
 | Decision | Tradeoff |
@@ -3881,5 +3980,596 @@ MONITORING:    Centralized logging | Distributed tracing | Health checks
 CAP:           Consistency + Availability + Partition Tolerance (pick 2)
 RESILIENCE:    Circuit breaker | Retry | Fallback | Bulkhead
 ```
+# Cloud & DevOps — Interview Preparation
 
+---
 
+## Core Concepts
+
+### Cloud Service Models
+
+| Model | You Manage | Provider Manages | Example |
+|-------|-----------|-----------------|---------|
+| **On-Premises** | Everything | Nothing | Your own data center |
+| **IaaS** | OS, apps, data, middleware | Hardware, networking, storage | Azure VMs, AWS EC2 |
+| **PaaS** | App + data only | Everything else | Azure App Service, Heroku |
+| **SaaS** | Nothing (just use it) | Everything | Microsoft 365, Gmail |
+
+---
+
+## Deep Dive
+
+### Azure App Service
+- HTTP-based PaaS for web apps, REST APIs, mobile backends.
+- Supports .NET, Java, Node.js, Python, PHP.
+- Runs on both Windows and Linux.
+
+**Scaling:**
+| Type | What | Example |
+|------|------|---------|
+| **Scale Up** | Upgrade plan (more CPU/RAM) | Basic → Standard |
+| **Scale Out** | Add more instances | 1 → 5 instances |
+| **Auto-scaling** | Rule-based instance management | Scale on CPU > 70% |
+
+Auto-scaling available on **Standard plan and above**. Based on conditions: CPU %, DataIn/Out, HTTP queue length.
+
+**Key features by plan tier:**
+
+| Feature | Basic | Standard | Premium |
+|---------|-------|----------|---------|
+| Auto-scaling | No | Yes | Yes |
+| Deployment slots | No | Yes | Yes |
+| SSL/TLS | No | Yes | Yes |
+| Backups | No | Yes | Yes |
+
+**Deployment Slots:** Separate environments (dev, staging, prod) under one App Service. Swap slots for zero-downtime deployments.
+
+**Zone Redundancy:** Deploy across 3 availability zones. Protects against datacenter failures. Ensures disaster recovery.
+
+### Azure Container Services
+
+| Service | Purpose |
+|---------|---------|
+| **Container Instances (ACI)** | Run containers without managing VMs. Quick, serverless. |
+| **Container Registry (ACR)** | Private Docker image registry in Azure. Store and manage images. |
+
+### Azure Functions (Serverless)
+
+- Run code without provisioning servers. Pay only when code runs.
+- **Consumption Plan:** Scale automatically based on incoming events.
+- **Development:** Portal, VS Code, or any editor.
+
+**Trigger types:** HTTP, Timer, Blob Storage, Cosmos DB, Service Bus Queue, Event Hub, Kafka.
+
+**Authorization levels:** Function, Anonymous, Admin.
+
+**Durable Functions** — stateful serverless:
+```
+HTTP Starter → triggers → Orchestrator → calls → Activity Functions
+```
+- **Orchestrator:** Defines the workflow sequence.
+- **Activity Functions:** Individual units of work invoked by orchestrator.
+- Use case: Long-running workflows, fan-out/fan-in, human interaction patterns.
+
+---
+
+### Message Brokers: Kafka vs RabbitMQ
+
+| | Kafka | RabbitMQ |
+|-|-------|----------|
+| Model | Distributed log / event stream | Message broker / queue |
+| Throughput | Very high | Moderate |
+| Ordering | Per-partition ordering | Per-queue ordering |
+| Retention | Persists messages (configurable) | Removes after consumption |
+| Scaling | Partition-based | Queue-based |
+| Latency | Higher | Lower |
+| Best for | Event sourcing, log pipelines, analytics | Task queues, RPC, background jobs |
+
+**When to use Kafka:**
+- Event streaming / event sourcing
+- Big data pipelines
+- Telemetry & analytics
+- When consumers need to replay events
+
+**When to use RabbitMQ:**
+- Job/task queues
+- Microservice async communication
+- Request/response (RPC) messaging
+- When you need complex routing (exchanges)
+
+**Kafka improvements to consider:**
+1. Schema registry for message versioning
+2. Better topic partition strategy
+3. Dead letter queues for failed messages
+4. Monitoring and alerting
+
+---
+
+## Real-World Usage
+
+### Typical Cloud Architecture for .NET Microservices
+```
+Client → API Gateway (load balancing, auth)
+           ├── Service A (Azure App Service)
+           ├── Service B (Azure Functions)
+           └── Service C (Container Instance)
+                   ↓
+              Message Broker (Kafka/RabbitMQ)
+                   ↓
+              Database (SQL Server / Cosmos DB)
+              Cache (Redis)
+              Storage (Blob)
+```
+
+### Key DevOps Tools
+
+| Tool | Purpose |
+|------|---------|
+| **Docker** | Containerize applications |
+| **Kubernetes** | Container orchestration at scale |
+| **Jenkins** | CI/CD pipeline automation |
+| **Nginx** | Reverse proxy, load balancer |
+| **AWS Lambda** | Serverless compute (AWS equivalent of Azure Functions) |
+| **S3** | Object storage (AWS) |
+
+---
+
+## Tradeoffs & Pitfalls
+
+- **PaaS vs IaaS:** PaaS = faster development, less control. IaaS = full control, more maintenance.
+- **Consumption plan limits:** Cold starts, execution timeout (5 min default, 10 max). Use Premium plan for latency-sensitive functions.
+- **Kafka overkill:** Don't use Kafka for simple job queues. RabbitMQ is simpler and lower latency.
+- **Deployment slots swap:** Always test in staging slot first. Swap = instant, no downtime.
+- **Auto-scaling costs:** Scale-out rules without scale-in limits = unexpected bills.
+- **Container vs Serverless:** Containers for persistent workloads. Serverless for event-driven, sporadic loads.
+
+---
+
+## Interview Questions — Rapid Fire
+
+1. **IaaS vs PaaS vs SaaS?** IaaS = you manage OS+apps. PaaS = you manage app+data. SaaS = you just use it.
+2. **What is Azure App Service?** PaaS for hosting web apps, REST APIs. Supports auto-scaling, deployment slots, SSL.
+3. **Scale Up vs Scale Out?** Up = bigger machine. Out = more instances.
+4. **What are deployment slots?** Separate environments under one App Service. Swap for zero-downtime releases.
+5. **What is Azure Functions?** Serverless compute. Triggers: HTTP, Timer, Blob, Queue. Pay per execution.
+6. **What are Durable Functions?** Stateful serverless. Orchestrator coordinates activity functions in sequence.
+7. **Kafka vs RabbitMQ?** Kafka = event streaming, high throughput, persistent log. RabbitMQ = task queues, lower latency, complex routing.
+8. **What is Docker?** Packages app + dependencies into a portable container.
+9. **What is Kubernetes?** Orchestrates containers at scale — deployment, scaling, networking, self-healing.
+10. **Availability zones?** Physically separate datacenters in a region. Minimum 3 per region for redundancy.
+
+---
+
+## Quick Reference
+
+```
+CLOUD:      On-Prem → IaaS → PaaS → SaaS  (less control, less management)
+AZURE:      App Service (PaaS) | Functions (serverless) | ACI (containers) | ACR (registry)
+SCALING:    Up (bigger) | Out (more) | Auto (rules-based)
+PLANS:      Basic < Standard < Premium  (auto-scale from Standard+)
+FUNCTIONS:  Triggers: HTTP|Timer|Blob|Queue|EventHub|Kafka
+            Auth: Function|Anonymous|Admin
+            Durable: Starter→Orchestrator→Activities
+MESSAGING:  Kafka (event stream, high throughput) | RabbitMQ (task queue, low latency)
+CONTAINERS: Docker (package) | K8s (orchestrate) | ACI (serverless containers)
+DEVOPS:     Jenkins (CI/CD) | Nginx (reverse proxy) | Docker + K8s
+```
+# Coding Problems — Interview Preparation
+
+---
+
+## Problem 1: Two Sum / Pair Sum
+
+**Pattern:** Hash Set lookup
+**Difficulty:** Easy
+
+### Approach
+For each number, check if `target - num` exists in a set. If yes, pair found. Otherwise, add `num` to set.
+
+### Code (JavaScript)
+```javascript
+function hasPairSum(arr, target) {
+  const seen = new Set();
+  for (const num of arr) {
+    if (seen.has(target - num)) return true;
+    seen.add(num);
+  }
+  return false;
+}
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| Brute force (nested loops) | O(n²) | O(1) |
+| **Optimized (hash set)** | **O(n)** | **O(n)** |
+
+### Variations
+- Return indices instead of boolean (use Map instead of Set)
+- Find all pairs (don't return early)
+- Three Sum (sort + two pointers, O(n²))
+
+---
+
+## Problem 2: Longest Palindromic Substring
+
+**Pattern:** Expand Around Center
+**Difficulty:** Medium
+
+### Approach
+For each index, expand outward while characters match. Check both odd-length (center = single char) and even-length (center = between two chars) palindromes.
+
+### Code (JavaScript)
+```javascript
+function longestPalindrome(s) {
+  let longest = "";
+
+  const expand = (left, right) => {
+    while (left >= 0 && right < s.length && s[left] === s[right]) {
+      const sub = s.substring(left, right + 1);
+      if (sub.length > longest.length) longest = sub;
+      left--;
+      right++;
+    }
+  };
+
+  for (let i = 0; i < s.length; i++) {
+    expand(i, i);     // odd-length palindrome
+    expand(i, i + 1); // even-length palindrome
+  }
+  return longest;
+}
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| **Expand around center** | **O(n²)** | **O(1)** |
+| Manacher's algorithm | O(n) | O(n) |
+
+### Variations
+- Longest palindromic subsequence (DP)
+- Count palindromic substrings
+- Check if string can form palindrome (character frequency)
+
+---
+
+## Problem 3: Merge Intervals
+
+**Pattern:** Sort + Greedy Merge
+**Difficulty:** Medium
+
+### Approach
+Sort intervals by start time. Iterate: if current overlaps with previous result, extend the end. Otherwise, push new interval.
+
+### Code (JavaScript)
+```javascript
+function mergeIntervals(intervals) {
+  intervals.sort((a, b) => a[0] - b[0]);
+  const result = [intervals[0]];
+
+  for (let i = 1; i < intervals.length; i++) {
+    const prev = result[result.length - 1];
+    const curr = intervals[i];
+    if (curr[0] <= prev[1]) {
+      prev[1] = Math.max(prev[1], curr[1]);
+    } else {
+      result.push(curr);
+    }
+  }
+  return result;
+}
+// Input:  [[1,3],[2,6],[8,10],[15,18]]
+// Output: [[1,6],[8,10],[15,18]]
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| **Sort + merge** | **O(n log n)** | **O(n)** |
+
+### Variations
+- Insert interval into sorted non-overlapping list
+- Meeting rooms (can attend all? → check for any overlap)
+- Meeting rooms II (min rooms needed → min heap)
+
+---
+
+## Problem 4: Second Highest Element
+
+**Pattern:** Set deduplication + sorting
+**Difficulty:** Easy
+
+### Approach (Initial — has a flaw)
+Sort descending, deduplicate with Set, return second element.
+
+```javascript
+const secondHighest = (arr) => {
+  arr.sort((a, b) => b - a);
+  const set = new Set(arr);
+  if (set.size < 2) return null;
+  return [...set][1];
+};
+
+console.log(secondHighest([5, 5]));       // null ✅ (only one unique value)
+console.log(secondHighest([3, 1, 4, 4])); // 3 ✅
+console.log(secondHighest([-5, -1, -3])); // -3 ❌ WRONG — returns -5 (Set doesn't preserve sort order)
+```
+
+**Problem:** `Set` preserves *insertion order*, but `sort((a,b) => b-a)` sorts descending by numeric value, so the Set seems to work — **except** `Set` does not re-sort. The real issue: this approach is O(n log n) due to sort, and the Set spread creates an extra array.
+
+### Optimized — Single Pass O(n)
+```javascript
+function secondHighest(arr) {
+  let first = -Infinity;
+  let second = -Infinity;
+
+  for (const num of arr) {
+    if (num > first) {
+      second = first;
+      first = num;
+    } else if (num > second && num !== first) {
+      second = num;
+    }
+  }
+
+  return second === -Infinity ? null : second;
+}
+
+console.log(secondHighest([5, 5]));         // null ✅
+console.log(secondHighest([3, 1, 4, 4]));   // 3 ✅
+console.log(secondHighest([-5, -1, -3]));   // -3 ✅
+console.log(secondHighest([1]));            // null ✅
+console.log(secondHighest([7, 7, 7]));      // null ✅
+console.log(secondHighest([-10, -20, 0]));  // -10 ✅
+```
+
+### Complexity
+| Approach | Time | Space |
+|----------|------|-------|
+| Sort + Set | O(n log n) | O(n) |
+| **Single pass** | **O(n)** | **O(1)** |
+
+### Edge Cases
+- All elements are the same → return `null`
+- Array has only one element → return `null`
+- Negative numbers → must use `-Infinity` as initial values (not `0`)
+- Duplicates of the highest → skip them (`num !== first` check)
+
+---
+
+## Problem 5: Max Consecutive Ones
+
+**Pattern:** Sliding window / counter
+**Difficulty:** Easy
+**LeetCode:** #485
+
+### Approach
+Track a running count of consecutive 1s. Reset to 0 when a non-1 is encountered. Track the max seen so far.
+
+### Code (JavaScript)
+```javascript
+var findMaxConsecutiveOnes = function(nums) {
+  let count = 0;
+  let max = 0;
+  nums.forEach((ele) => {
+    if (ele === 1) {
+      count++;
+      max = Math.max(count, max);
+    } else {
+      count = 0;
+    }
+  });
+  return max;
+};
+
+console.log(findMaxConsecutiveOnes([1, 1, 0, 1, 1, 1])); // 3
+console.log(findMaxConsecutiveOnes([1, 0, 1, 1, 0, 1])); // 2
+console.log(findMaxConsecutiveOnes([0, 0, 0]));           // 0
+console.log(findMaxConsecutiveOnes([1]));                  // 1
+console.log(findMaxConsecutiveOnes([]));                   // 0
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| **Single pass** | **O(n)** | **O(1)** |
+
+### Variations
+- **Max Consecutive Ones II** (LeetCode #487): You may flip at most one 0 → sliding window with at most one 0 inside
+- **Max Consecutive Ones III** (LeetCode #1004): You may flip at most K zeros → sliding window tracking zero count
+
+---
+
+## Problem 6: LINQ One-Liners (C#)
+
+**Pattern:** GroupBy + Aggregation
+
+### Top K Frequent Elements
+```csharp
+var result = nums.GroupBy(x => x)
+    .OrderByDescending(g => g.Count())
+    .Take(k)
+    .Select(g => g.Key);
+```
+
+### First Non-Repeating Character
+```csharp
+var result = input.GroupBy(c => c)
+    .Where(g => g.Count() == 1)
+    .Select(g => g.Key)
+    .FirstOrDefault();
+```
+
+### Flatten Nested Lists
+```csharp
+var flat = list.SelectMany(x => x);
+```
+
+### Word Frequency Dictionary
+```csharp
+var freq = words.GroupBy(w => w)
+    .ToDictionary(g => g.Key, g => g.Count());
+```
+
+### Find Duplicates
+```csharp
+var duplicates = nums.GroupBy(x => x)
+    .Where(g => g.Count() > 1)
+    .Select(g => g.Key);
+```
+
+---
+
+## Quick Reference — Common Patterns
+
+```
+TWO SUM:          Hash Set/Map → O(n)
+SLIDING WINDOW:   Two pointers, expand/shrink window
+MERGE INTERVALS:  Sort by start, greedy merge
+PALINDROME:       Expand around center → O(n²)
+BINARY SEARCH:    Sorted array, halve search space → O(log n)
+BFS/DFS:          Graph/tree traversal
+DYNAMIC PROG:     Overlapping subproblems + optimal substructure
+GREEDY:           Local optimal → global optimal
+STACK:            Matching brackets, next greater element
+HEAP:             Top K elements, merge K sorted lists
+```
+# Original File: Professional-Resume-Writing-Guidelines.txt
+
+## Content
+
+Summary Section
+Instead of a traditional objective statement, consider using a resume summary or brand statement. This concise snapshot (aim for 60-100 words) serves as your elevator pitch, quickly conveying your value to potential employers.
+
+Why a Resume Summary?
+
+Not always required: If you've included a cover letter, your summary might be redundant.
+Valuable for quickly grabbing attention and highlighting your most relevant qualifications, as well as filling the gap if you're not submitting a cover letter.
+Writing an Effective Summary
+
+Focus on:
+
+Who you are and what you do: Clearly state your professional identity and area of expertise. Make sure this aligns with the job you're applying for.
+
+Your achievements: Highlight your most impressive accomplishments that are relevant to the target role. Think about:
+
+Measurable results you've achieved (e.g., increased sales by X%, reduced costs by Y%).
+Awards, recognition, or promotions you've received.
+Problems you've solved or challenges you've overcome.
+Times you've exceeded expectations or gone above and beyond.
+Your goal is to demonstrate that you're not only skilled and experienced, but that you have a proven track record of delivering results.
+
+Work Experience
+This is the section of your resume in which you detail your career history. It's here that you demonstrate that you have the relevant skills, experience and background for the job you are applying for. This is typically the longest section on your resume.
+
+How to describe your experience
+Incorporate bullets into your resume to improve skim value.
+
+For present roles, write in the simple present tense (i.e., practices, manages, performs)
+
+For past activities, write in the simple past tense (i.e., achieved, managed, performed).
+
+Include context for the position: What kind of company do you work for? What kind of products or services do they offer? What kind of customers do they work with (i.e., businesses, individuals)? Which industry do they operate in? How large are they (i.e., 10 locations? 100 locations? 500 personnel?).
+
+Describe how your work supports the company and their bottom line (i.e., which products do you support? What kind of customers do you support? Which business unit do you work for?)
+
+What are your main functions? Don't worry about including every tiny detail - focus on the things that occupy most of your time and/or the things that are relevant to your next job.
+
+Focus on how your work had an impact to the company's bottom line. This could take a variety of forms, such as:
+
+landing new clients,
+saving on costs,
+automating tasks and saving on manual hours,
+killing your sales targets,
+earning performance-related awards or praise from management, or
+successfully pulling off large-scale projects
+Bullet Point Structuring
+
+PAR (Problem-Action-Result): A common and widely used formula that's ideal for showing accomplishments, highlighting technical skills, and demonstrating problem-solving abilities. Use it when you want to emphasize the impact of your work and how you achieved results.
+
+Example #1: "Reduced customer support response time by 20% by implementing a new ticketing system and optimizing workflow processes."
+
+Example #2: "Overcame tight project deadlines by prioritizing tasks, coordinating resources, and effectively communicating with stakeholders."
+
+STAR (Situation-Task-Action-Result): This formula provides a more detailed narrative, making it suitable for behavioral interview questions and detailed job descriptions. It's great for demonstrating specific skills and competencies in context.
+
+Example #1: "Managed inventory levels and ensured product availability while minimizing stockouts in a fast paced retail setting; achieved a 15% reduction in inventory costs."
+
+Example #2: "Quickly diagnosed a server outage and implemented a temporary workaround, minimizing downtime for critical business operations and preventing thousands of dollars in associated losses."
+
+Result-First: This formula leads with the quantifiable outcome, immediately grabbing the reader's attention. It's effective when you have impressive results to showcase and want to make a strong impact.
+
+Example: "Increased sales revenue by 18% through targeted marketing campaigns and effective sales strategies."
+
+Action Verb + Skill + Result: Highlights the action taken, the skill applied, and the achieved result. It's concise and easy to read, and is commonly used for engineering/technical resumes.
+
+Example: "Developed a user-friendly website using HTML, CSS, and JavaScript, resulting in a 30% increase in website traffic."
+
+Start with your most recent experience and continue in reverse chronological order. Your most recent role should also contain the most bullet points and the length of each section can decrease as you work back through your career.
+
+Feature your most relevant bullet points first. For each job application, you should review what you have written so that you focus on the experience that is most relevant to the role you are applying for. Are there duties in the job description which you have performed in your previous roles? If so, make sure to include these examples at the top of each role in your experience section.
+
+DON'T DO THIS
+
+Use generic statements.
+
+Use repetitive terms, phrases, or sentences.
+
+Use overly fancy/flowery language. Simple is always better.
+
+Skills and Keywords
+Keywords are words or phrases found in the job posting and are important skills or competencies required to fulfill the role. Including them on your resume will enable you to rank higher in a recruiter search. This doesn't guarantee you'll get the job or the interview, but it will increase the likelihood that your resume will be seen first.
+
+Technical Skills
+Technical skills on a resume showcase specific knowledge and expertise in using tools, software, hardware, or specialized processes within a particular field. They demonstrate your ability to perform job-specific tasks and are crucial for many positions, especially those in technology, engineering, science, and other technical fields.
+
+There are different types of technical skills, which can be broadly categorized as:
+
+Hard Technical Skills: These involve hands-on, practical knowledge of specific tools, software, hardware, or techniques. Examples include:
+
+Programming languages: Java, Python, C++, JavaScript, etc.
+Software applications: Microsoft Office Suite, Adobe Creative Suite, CAD software, project management software, etc.
+Operating systems: Windows, macOS, Linux
+Data analysis tools: SQL, R, SAS
+Networking protocols: TCP/IP, DNS, DHCP
+Cloud computing platforms: AWS, Azure, Google Cloud
+Specific technical processes: Machine learning, statistical analysis, web development
+Soft Technical Skills: These skills involve using technical knowledge to solve problems, analyze data, communicate effectively, and collaborate with others. Examples include:
+
+Troubleshooting: Identifying and resolving technical issues
+Data analysis: Collecting, processing, and interpreting data
+Project management: Planning, organizing, and executing technical projects
+Technical writing: Creating clear and concise technical documentation
+Presentation skills: Communicating technical information effectively to both technical and non-technical audiences
+When incorporating technical skills into resume bullet points, a common and effective structure to follow is the PAR (Problem-Action-Result) method:
+
+Problem (or Project): Briefly describe the challenge, project, or task you faced. This sets the context for your technical skill application.
+Action: Explain the specific actions you took to address the problem or complete the task. Highlight the technical skills you used and how you applied them.
+Result: Quantify the positive outcome or impact of your actions. Emphasize the results achieved through your technical skills, using numbers or percentages if possible.
+Here's an example of a PAR bullet point showcasing technical skills:
+
+Problem: Website traffic was declining due to slow page load times and poor user experience.
+Action: Implemented website optimization techniques, including image compression, code minification, and caching, using HTML, CSS, and JavaScript. Improved site navigation and mobile responsiveness.
+Result: Increased website traffic by 25% within three months, decreased page load time by 50%, and improved user engagement metrics by 15%.
+This structure effectively demonstrates your technical skills in a context that's meaningful to employers. It shows not only that you possess certain skills but also how you have successfully applied them to achieve tangible results.
+
+How you present your content matters
+The difference between a forgettable resume and one that lands interviews often comes down to how you describe your experiences. Turn basic task descriptions into achievement statements that showcase your impact.
+
+Start every bullet point with a strong action verb that captures what you actually accomplished:
+
+Instead of "Helped with..." use "Initiated," "Led," "Created," "Developed"
+Replace "Was responsible for..." with "Managed," "Coordinated," "Implemented"
+Transform "Worked on..." to "Delivered," "Executed," "Streamlined"
+Quantify wherever possible, even if the numbers are small:
+
+Increased Instagram engagement by 25% through consistent content strategy
+Reduced processing time by 15% by automating data entry tasks
+Managed study group of 12 students, improving average test scores by 18%
+When you can't find specific numbers, focus on scope and scale:
+
+Coordinated logistics for three campus-wide events
+Collaborated with teams across five departments
+Maintained detailed documentation used by entire 20-person organization
+Even without formal work experience, you can show value by being specific and detailed in how you describe your work.
