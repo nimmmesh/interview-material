@@ -36,6 +36,23 @@ router.delete('/users/:id', deleteUser);      // Delete
 app.use('/api', router);
 ```
 
+### Why `/api` Route Prefix?
+
+> ***Separates backend API endpoints from frontend/UI routes. Industry convention, not a requirement.***
+
+```javascript
+// All routes prefixed with /api
+app.use('/api', router);         // /api/users, /api/orders
+app.use('/api/v2', routerV2);    // /api/v2/users — versioning
+```
+
+| Reason | Why |
+|--------|-----|
+| **Frontend vs Backend** | `/dashboard` (UI) vs `/api/users` (API) — no route conflicts |
+| **Versioning** | `/api/v1/users`, `/api/v2/users` |
+| **Gateway/proxy routing** | Nginx/Kong can route `/api/*` to backend, everything else to frontend |
+| **Security policies** | Apply rate limiting, auth, WAF specifically to `/api/*` |
+
 ### HTTP Status Codes
 
 | Code | Meaning | When to Use |

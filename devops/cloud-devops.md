@@ -132,6 +132,58 @@ Client → API Gateway (load balancing, auth)
 
 ---
 
+## Azure Key Vault
+
+> ***Centralized secret management. Never hardcode secrets in code, Git, or appsettings.***
+
+**What it stores:** DB connection strings, JWT secret keys, OAuth secrets, API keys, SSL certificates, storage account keys.
+
+**Why use it:**
+
+| Benefit | Details |
+|---------|--------|
+| **Security** | Secrets out of source code, Git repos, Docker images, appsettings.json |
+| **Centralized** | Rotate secrets without redeploying applications |
+| **Access control** | RBAC, access policies, Managed Identity authentication |
+
+### Integration in .NET (Program.cs)
+
+```csharp
+builder.Configuration.AddAzureKeyVault(
+    new Uri($"https://{vaultName}.vault.azure.net/"),
+    new DefaultAzureCredential());
+```
+
+**Authentication flow (Managed Identity):**
+```
+App starts → Azure authenticates via Managed Identity → Connects to Key Vault
+→ Secrets fetched securely → IConfiguration exposes values to application
+```
+
+> ⚡ **No username/password in code.** Managed Identity handles auth automatically.
+
+**Accessing secrets:**
+```csharp
+var conn = builder.Configuration["DbConnectionString"];
+// App doesn't care if value came from appsettings.json, env vars, or Key Vault
+```
+
+### Config Source Hierarchy
+
+| Source | Purpose |
+|--------|--------|
+| `appsettings.json` | Non-sensitive app configs |
+| Environment Variables | Environment-specific configs |
+| **Azure Key Vault** | **Sensitive secrets & credentials** |
+
+> ⚠️ **Key Vault is NOT configured in `launchSettings.json`** — that file is for local dev only (IIS profiles, local env vars).
+
+**Real-world practice:** Local dev → user-secrets / env variables. QA/Production → Azure Key Vault.
+
+**Senior-level answer:** "Azure Key Vault is a centralized secret management service for storing sensitive configs like connection strings and API keys. In .NET, it integrates in Program.cs using AddAzureKeyVault() with Managed Identity, allowing secrets to be fetched at runtime without hardcoding them in source code or config files."
+
+---
+
 ## Tradeoffs & Pitfalls
 
 - **PaaS vs IaaS:** PaaS = faster development, less control. IaaS = full control, more maintenance.

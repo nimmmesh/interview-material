@@ -19,6 +19,27 @@
 - **HTTP methods = operations:** GET (read), POST (create), PUT (replace), PATCH (partial update), DELETE (remove).
 - **Best practices:** Accept/respond with JSON, use plural nouns (`/cars` not `/car`), use HTTP status codes, version your API, use SSL/TLS.
 
+### Why `/api` in Controller Routes?
+
+```csharp
+[Route("api/[controller]")]
+[ApiController]
+public class UsersController : ControllerBase { }
+```
+
+> ***`/api` is a convention to separate backend API endpoints from frontend/UI routes.***
+
+| Reason | Why |
+|--------|-----|
+| **Frontend vs Backend separation** | `/dashboard` (UI) vs `/api/users` (API) — prevents route conflicts |
+| **API versioning** | `/api/v1/users`, `/api/v2/users` — common in enterprise systems |
+| **Gateway routing** | Nginx/Kong/Azure API Management can route all `/api/*` to backend services |
+| **Security policies** | Apply rate limiting, WAF, auth, monitoring specifically to `/api/*` |
+
+> 💡 `/api` is **not mandatory** — `[Route("[controller]")]` works too. But it's an industry convention widely adopted in enterprise systems.
+
+**Senior-level answer:** "/api is a routing convention that separates backend service endpoints from frontend routes while simplifying API versioning, gateway routing, and infrastructure policies."
+
 ### PUT vs PATCH
 
 | | PUT | PATCH |

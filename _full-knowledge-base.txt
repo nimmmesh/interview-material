@@ -290,6 +290,27 @@ Resource-oriented URLs + HTTP verbs + stateless + JSON. That's REST.
 • HTTP methods = operations: GET (read), POST (create), PUT (replace), PATCH (partial update), DELETE (remove).
 • Best practices: Accept/respond with JSON, use plural nouns (/cars not /car), use HTTP status codes, version your API, use SSL/TLS.
 
+Why /api in Controller Routes?
+
+```csharp
+[Route("api/[controller]")]
+[ApiController]
+public class UsersController : ControllerBase { }
+```
+
+/api is a convention to separate backend API endpoints from frontend/UI routes.
+
+| Reason | Why |
+|--------|-----|
+| Frontend vs Backend separation | /dashboard (UI) vs /api/users (API) — prevents route conflicts |
+| API versioning | /api/v1/users, /api/v2/users — common in enterprise systems |
+| Gateway routing | Nginx/Kong/Azure API Management can route all /api/* to backend services |
+| Security policies | Apply rate limiting, WAF, auth, monitoring specifically to /api/* |
+
+💡 /api is not mandatory — [Route("[controller]")] works too. But it's an industry convention widely adopted in enterprise systems.
+
+Senior-level answer: "/api is a routing convention that separates backend service endpoints from frontend routes while simplifying API versioning, gateway routing, and infrastructure policies."
+
 PUT vs PATCH
 
 | | PUT | PATCH |
@@ -2005,6 +2026,23 @@ router.delete('/users/:id', deleteUser);      // Delete
 
 app.use('/api', router);
 ```
+
+Why /api Route Prefix?
+
+Separates backend API endpoints from frontend/UI routes. Industry convention, not a requirement.
+
+```javascript
+// All routes prefixed with /api
+app.use('/api', router);         // /api/users, /api/orders
+app.use('/api/v2', routerV2);    // /api/v2/users — versioning
+```
+
+| Reason | Why |
+|--------|-----|
+| Frontend vs Backend | /dashboard (UI) vs /api/users (API) — no route conflicts |
+| Versioning | /api/v1/users, /api/v2/users |
+| Gateway/proxy routing | Nginx/Kong can route /api/* to backend, everything else to frontend |
+| Security policies | Apply rate limiting, auth, WAF specifically to /api/* |
 
 HTTP Status Codes
 
@@ -5667,6 +5705,56 @@ Key DevOps Tools
 | Nginx | Reverse proxy, load balancer |
 | AWS Lambda | Serverless compute (AWS equivalent of Azure Functions) |
 | S3 | Object storage (AWS) |
+
+Azure Key Vault
+
+Centralized secret management. Never hardcode secrets in code, Git, or appsettings.
+
+What it stores: DB connection strings, JWT secret keys, OAuth secrets, API keys, SSL certificates, storage account keys.
+
+Why use it:
+
+| Benefit | Details |
+|---------|--------|
+| Security | Secrets out of source code, Git repos, Docker images, appsettings.json |
+| Centralized | Rotate secrets without redeploying applications |
+| Access control | RBAC, access policies, Managed Identity authentication |
+
+Integration in .NET (Program.cs)
+
+```csharp
+builder.Configuration.AddAzureKeyVault(
+    new Uri($"https://{vaultName}.vault.azure.net/"),
+    new DefaultAzureCredential());
+```
+
+Authentication flow (Managed Identity):
+```
+App starts → Azure authenticates via Managed Identity → Connects to Key Vault
+→ Secrets fetched securely → IConfiguration exposes values to application
+```
+
+⚡ No username/password in code. Managed Identity handles auth automatically.
+
+Accessing secrets:
+```csharp
+var conn = builder.Configuration["DbConnectionString"];
+// App doesn't care if value came from appsettings.json, env vars, or Key Vault
+```
+
+Config Source Hierarchy
+
+| Source | Purpose |
+|--------|--------|
+| appsettings.json | Non-sensitive app configs |
+| Environment Variables | Environment-specific configs |
+| Azure Key Vault | Sensitive secrets & credentials |
+
+⚠️ Key Vault is NOT configured in launchSettings.json — that file is for local dev only (IIS profiles, local env vars).
+
+Real-world practice: Local dev → user-secrets / env variables. QA/Production → Azure Key Vault.
+
+Senior-level answer: "Azure Key Vault is a centralized secret management service for storing sensitive configs like connection strings and API keys. In .NET, it integrates in Program.cs using AddAzureKeyVault() with Managed Identity, allowing secrets to be fetched at runtime without hardcoding them in source code or config files."
 
 Tradeoffs & Pitfalls
 
