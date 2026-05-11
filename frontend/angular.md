@@ -5,7 +5,10 @@
 ## Core Concepts
 
 ### Component Architecture
-- **Component** = class + template + styles. Decorated with `@Component({ selector, templateUrl, styleUrls })`.
+
+> ***Component = class + template + styles. Every Angular app is a tree of components.***
+
+- Decorated with `@Component({ selector, templateUrl, styleUrls })`.
 - Every app has a root component bootstrapped in `AppModule`.
 - Components are directives with templates — they control a section of the view.
 
@@ -322,7 +325,7 @@ export class UserComponent implements OnInit {
 }
 ```
 
-**Rule of thumb:** Constructor = inject dependencies. `ngOnInit` = everything else.
+> 💡 **Rule of thumb:** Constructor = inject dependencies. `ngOnInit` = everything else.
 
 ### Forms
 
@@ -545,8 +548,8 @@ Angular 17 introduced `@defer` blocks — lazy load **individual components** (n
 
 ## Tradeoffs & Pitfalls
 
-- **Memory leaks:** Always unsubscribe from observables. Use `takeUntil`, `async` pipe, or `DestroyRef`.
-- **OnPush gotcha:** Mutating objects won't trigger change detection — must create new references.
+> ⚠️ **Memory leaks:** Always unsubscribe from observables. Use `takeUntil`, `async` pipe, or `DestroyRef`.
+> ⚠️ **OnPush gotcha:** Mutating objects won't trigger change detection — must create new references.
 - **Eager loading everything:** Use lazy loading for feature modules to reduce initial bundle size.
 - **`ngFor` without `trackBy`:** Causes full DOM re-render on list changes.
 - **Template-driven forms at scale:** Become unmanageable; switch to reactive forms early.
@@ -557,16 +560,157 @@ Angular 17 introduced `@defer` blocks — lazy load **individual components** (n
 
 ## Interview Questions — Rapid Fire
 
-1. **Angular vs AngularJS?** Angular = TypeScript, component-based, RxJS. AngularJS = JavaScript, scope/controller-based.
-2. **AOT vs JIT?** AOT compiles at build time (smaller bundle, faster). JIT compiles at runtime (default for `ng serve`).
-3. **What is Transpiling?** TypeScript → JavaScript conversion during build.
-4. **Why TypeScript?** Strict OOP, type safety, better tooling, catches errors at compile time.
-5. **Standalone Components?** (Angular 14+) Components without `NgModule`, import dependencies directly.
-6. **Signals?** (Angular 16+) Fine-grained reactive primitives, more predictable than zone.js-based detection.
-7. **`ng-content` vs `ng-template`?** `ng-content` = content projection (transclusion). `ng-template` = lazy template, rendered conditionally.
-8. **`ViewChild` vs `ViewChildren`?** `ViewChild` = first match. `ViewChildren` = QueryList of all matches.
-9. **Angular Material?** UI component library following Material Design.
-10. **Building blocks?** Components, Modules, Services, Directives, Pipes, Routing, Templates, Data Binding, DI.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **Angular vs AngularJS?** | Angular = TypeScript, component-based, RxJS. AngularJS = JS, scope/controller-based |
+| 2 | **AOT vs JIT?** | AOT = build time (smaller, faster). JIT = runtime (default for `ng serve`) |
+| 3 | **What is Transpiling?** | TypeScript → JavaScript conversion during build |
+| 4 | **Why TypeScript?** | Strict OOP, type safety, better tooling, **compile-time error detection** |
+| 5 | **Standalone Components?** | (Angular **14+**) Components without `NgModule`, import dependencies directly |
+| 6 | **Signals?** | (Angular **16+**) Fine-grained reactive primitives, more predictable than zone.js |
+| 7 | **`ng-content` vs `ng-template`?** | `ng-content` = content projection. `ng-template` = lazy template, rendered conditionally |
+| 8 | **`ViewChild` vs `ViewChildren`?** | `ViewChild` = first match. `ViewChildren` = QueryList of all matches |
+| 9 | **Angular Material?** | UI component library following Material Design |
+| 10 | **Building blocks?** | Components, Modules, Services, Directives, Pipes, Routing, Templates, DI |
+
+---
+
+## Microfrontends
+
+### What is a Microfrontend?
+A microfrontend extends microservice principles to the frontend — splitting a monolithic frontend into smaller, independently deployable UI applications that compose into a single user experience.
+
+```
+┌──────────────────────────────────────────────────┐
+│                  Container / Shell                │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
+│  │  Team A     │  │  Team B     │  │  Team C     │  │
+│  │  (Angular)  │  │  (React)    │  │  (Vue)      │  │
+│  │  Catalog    │  │  Cart       │  │  Checkout   │  │
+│  └────────────┘  └────────────┘  └────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
+### Implementation Approaches
+
+| Approach | How | Pros | Cons |
+|----------|-----|------|------|
+| **Module Federation** (Webpack 5) | Load remote modules at runtime | Best DX, shared dependencies, lazy loading | Webpack-only, version alignment needed |
+| **Single-SPA** | Framework-agnostic orchestrator | Polyglot (mix Angular + React), mature ecosystem | Complex setup, global state tricky |
+| **iframes** | Embed each micro-app in iframe | Complete isolation, simple | Poor UX (no shared styles/routing), performance hit |
+| **Web Components** | Each micro-app as custom element | Framework-agnostic, native browser support | Limited tooling, Shadow DOM styling challenges |
+
+### Data Sharing Between Microfrontends
+
+| Pattern | How | When to Use |
+|---------|-----|-------------|
+| **Custom Events** | `window.dispatchEvent(new CustomEvent('cart-updated', { detail }))` | Loose coupling, simple notifications |
+| **Shared State Store** | Shared Redux/Zustand store loaded via Module Federation | Complex shared state, multiple consumers |
+| **URL / Route Params** | Pass data via URL query params or route segments | Navigation-driven data |
+| **Props / Attributes** | Pass data as Web Component attributes or framework props | Parent → child data flow |
+| **Pub/Sub (Event Bus)** | Lightweight event bus (RxJS Subject on `window`) | Decoupled, event-driven communication |
+| **Shared API Layer** | Each MFE fetches from same backend, caches shared | Independent data fetching |
+
+**Custom Events example:**
+```javascript
+// Producer (Cart MFE)
+window.dispatchEvent(new CustomEvent('cart:updated', {
+  detail: { items: cart, total: cart.length }
+}));
+
+// Consumer (Header MFE)
+window.addEventListener('cart:updated', (e) => {
+  document.getElementById('cart-count').textContent = e.detail.total;
+});
+```
+
+**Shared state via Module Federation:**
+```javascript
+// shared-store (remote module exposed by Shell)
+import { BehaviorSubject } from 'rxjs';
+export const user$ = new BehaviorSubject(null);
+export const setUser = (user) => user$.next(user);
+
+// Auth MFE — sets user after login
+import { setUser } from 'shell/shared-store';
+setUser({ name: 'Alice', role: 'admin' });
+
+// Dashboard MFE — reads user
+import { user$ } from 'shell/shared-store';
+user$.subscribe(user => console.log('Logged in:', user?.name));
+```
+
+### Key Design Principles
+- **Independent deployment** — each MFE has its own CI/CD pipeline
+- **Team ownership** — each team owns a vertical slice (UI + API + DB)
+- **Shared nothing** — minimize shared dependencies; share only contracts
+- **Consistent UX** — use a shared design system / component library
+
+---
+
+## Tooling & Package Management
+
+### `npm audit`
+
+Scans your project's dependency tree for known security vulnerabilities.
+
+```bash
+# Run a vulnerability audit
+npm audit
+
+# Output: table of vulnerabilities with severity (low/moderate/high/critical)
+
+# Auto-fix vulnerabilities (updates to patched versions)
+npm audit fix
+
+# Force fix — may include breaking major version changes
+npm audit fix --force
+
+# Generate JSON report (useful for CI/CD pipelines)
+npm audit --json
+```
+
+**How it works:**
+1. Reads `package-lock.json` to get exact installed versions
+2. Checks against npm's security advisory database
+3. Reports vulnerable packages, severity, and recommended fix version
+
+**In CI/CD:** Add `npm audit --audit-level=high` to fail builds on high/critical vulnerabilities.
+
+### `package.json` vs `package-lock.json`
+
+| | `package.json` | `package-lock.json` |
+|-|---------------|--------------------|
+| **Purpose** | Project manifest — metadata, scripts, dependency ranges | Exact dependency tree lock |
+| **Version format** | Ranges: `^1.2.3`, `~1.2.3`, `>=1.0.0` | Exact: `1.2.3` |
+| **Created by** | `npm init` or manually | Auto-generated by `npm install` |
+| **Commit to git?** | Always | Always (ensures reproducible builds) |
+| **Editable?** | Yes (manually) | No (auto-managed by npm) |
+| **Contains** | Direct dependencies only | Entire nested dependency tree |
+
+**Version range symbols:**
+```
+^1.2.3  →  >=1.2.3 and <2.0.0  (minor + patch updates allowed)
+~1.2.3  →  >=1.2.3 and <1.3.0  (patch updates only)
+1.2.3   →  exactly 1.2.3       (pinned)
+```
+
+**Why `package-lock.json` matters:**
+- Without it, `npm install` on different machines may install different versions (within the `^`/`~` range)
+- Guarantees every developer and CI/CD gets the exact same dependency versions
+- Makes builds reproducible and deterministic
+
+**Common scenario:**
+```bash
+# Developer A adds a package
+npm install lodash      # Updates both package.json AND package-lock.json
+
+# Developer B pulls and installs
+npm install             # Reads package-lock.json → gets exact same versions
+
+# To update all dependencies to latest allowed by ranges
+npm update              # Updates package-lock.json
+```
 
 ---
 

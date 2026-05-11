@@ -4,52 +4,6 @@
 
 ## Core Concepts
 
-### CSS Specificity
-
-Specificity determines which CSS rule wins when multiple rules target the same element.
-
-**Hierarchy (highest → lowest):**
-```
-!important  >  Inline styles  >  ID selectors  >  Class/Attribute/Pseudo-class  >  Element/Pseudo-element  >  Universal (*)
-```
-
-**Specificity Calculation:** Each selector gets a score as `(a, b, c, d)`:
-
-| Component | Selector Type | Example | Weight |
-|-----------|--------------|---------|--------|
-| `a` | Inline styles | `style="color: red"` | 1,0,0,0 |
-| `b` | ID selectors | `#header` | 0,1,0,0 |
-| `c` | Classes, attributes, pseudo-classes | `.nav`, `[type="text"]`, `:hover` | 0,0,1,0 |
-| `d` | Elements, pseudo-elements | `div`, `::before` | 0,0,0,1 |
-
-**Examples:**
-```css
-/* Specificity: 0,0,0,1 */
-p { color: blue; }
-
-/* Specificity: 0,0,1,0 — wins over element */
-.text { color: green; }
-
-/* Specificity: 0,1,0,0 — wins over class */
-#main { color: red; }
-
-/* Specificity: 0,1,1,1 — highest combined */
-#main .text p { color: purple; }
-
-/* !important overrides everything (avoid in production) */
-p { color: orange !important; }
-```
-
-**Resolution order when specificity is equal:** Last rule in source order wins.
-
-**Best Practices:**
-- Avoid `!important` — makes debugging/overriding painful
-- Prefer classes over IDs for styling (lower specificity = easier to override)
-- Use BEM naming convention (`.block__element--modifier`) to avoid specificity wars
-- Inline styles should be reserved for dynamic/JS-driven styles only
-
----
-
 ### `var` vs `let` vs `const`
 
 | | `var` | `let` | `const` |
@@ -60,7 +14,8 @@ p { color: orange !important; }
 | Re-assignment | Yes | Yes | No |
 
 ### Closures
-A closure is a function that retains access to its outer scope's variables even after the outer function has returned.
+
+> ***A function that retains access to its outer scope’s variables even after the outer function has returned.***
 
 ```javascript
 function createCounter() {
@@ -114,223 +69,6 @@ For deep freeze, recursively freeze nested objects.
 ---
 
 ## Deep Dive
-
-### Event Loop
-JavaScript is single-threaded. The event loop manages async execution:
-
-```
-┌──────────────┐
-│  Call Stack   │ ← Synchronous code executes here
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│  Microtask Q  │ ← Promise callbacks, queueMicrotask, MutationObserver
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│  Macrotask Q  │ ← setTimeout, setInterval, I/O, UI rendering
-└──────────────┘
-```
-
-**Order:** Call stack empties → ALL microtasks → ONE macrotask → repeat.
-
-```javascript
-console.log('1');
-setTimeout(() => console.log('2'), 0);
-Promise.resolve().then(() => console.log('3'));
-console.log('4');
-// Output: 1, 4, 3, 2
-```
-
-### Event Loop Execution Order — Async Interview Question
-
-#### Code Example
-
-```javascript
-console.log("A");
-
-setTimeout(() => console.log("B"), 0);
-
-Promise.resolve().then(() => {
-  console.log("C");
-
-  setTimeout(() => console.log("D"), 0);
-});
-
-(async function () {
-  console.log("E");
-
-  await Promise.resolve();
-
-  console.log("F");
-})();
-
-console.log("G");
-```
-
-#### Output
-
-```txt
-A
-E
-G
-C
-F
-B
-D
-```
-
-#### Step-by-Step Execution
-
-**1. Synchronous Execution (Call Stack)**
-
-JavaScript first executes all synchronous code:
-
-```javascript
-console.log("A"); // A
-
-(async function () {
-  console.log("E"); // E
-})();
-
-console.log("G"); // G
-```
-
-Current Output:
-
-```txt
-A
-E
-G
-```
-
-**2. Macrotask Queue (`setTimeout`)**
-
-```javascript
-setTimeout(() => console.log("B"), 0);
-```
-
-`setTimeout` callbacks are placed in the **macrotask queue**.
-
-So `B` waits until:
-- synchronous code finishes
-- all microtasks finish
-
-**3. Microtask Queue (`Promise.then`)**
-
-```javascript
-Promise.resolve().then(() => {
-  console.log("C");
-
-  setTimeout(() => console.log("D"), 0);
-});
-```
-
-`.then()` callbacks are placed in the **microtask queue**.
-
-So after synchronous execution completes:
-- `C` executes
-- `D` gets scheduled into macrotask queue
-
-**4. `async/await` Behavior**
-
-```javascript
-(async function () {
-  console.log("E");
-
-  await Promise.resolve();
-
-  console.log("F");
-})();
-```
-
-Important behavior:
-- code before `await` executes synchronously
-- code after `await` becomes a microtask
-
-So:
-- `E` prints immediately
-- `F` executes later in the microtask queue
-
-#### Final Execution Order
-
-**Synchronous Phase**
-
-```txt
-A
-E
-G
-```
-
-**Microtasks**
-
-```txt
-C
-F
-```
-
-**Macrotasks**
-
-```txt
-B
-D
-```
-
-#### Core Rule
-
-JavaScript execution priority:
-
-```txt
-1. Call Stack (Synchronous code)
-2. Microtask Queue (Promises, async/await)
-3. Macrotask Queue (setTimeout, setInterval)
-```
-
-#### Important Interview Notes
-
-**Microtasks include:**
-- `Promise.then`
-- `catch`
-- `finally`
-- `await`
-- `queueMicrotask`
-
-**Macrotasks include:**
-- `setTimeout`
-- `setInterval`
-- DOM events
-- I/O operations
-
-**Key Rule:** All microtasks execute completely before the event loop processes the next macrotask.
-
-#### Quick Interview Explanation
-
-"JavaScript first runs synchronous code, then processes all microtasks like Promise callbacks and async/await continuations, and finally processes macrotasks like setTimeout callbacks."
-
-### Callback Hell → Solutions
-**Problem:** Deeply nested callbacks for sequential async operations.
-```javascript
-getData(a => {
-  getMore(a, b => {
-    getEvenMore(b, c => { /* pyramid of doom */ });
-  });
-});
-```
-
-**Solutions:**
-1. **Promises:** `.then()` chaining flattens nesting
-2. **Async/Await:** Synchronous-looking async code
-3. **RxJS:** Observable streams with operators
-
-```javascript
-// Async/Await (cleanest)
-async function fetchAll() {
-  const a = await getData();
-  const b = await getMore(a);
-  const c = await getEvenMore(b);
-  return c;
-}
-```
 
 ### `this` Context Rules
 1. **Global:** `window` (browser) / `undefined` (strict mode)
@@ -451,9 +189,7 @@ document.cookie = 'token=abc123; Secure; SameSite=Strict; Max-Age=3600';
 
 **Security best practices for tokens:**
 - **Auth tokens (JWT):** Store in `HttpOnly` cookies (not accessible via JS → XSS safe)
-- **Never** store sensitive data in `localStorage` — vulnerable to XSS attacks
-- Use `Secure` flag → cookie sent only over HTTPS
-- Use `SameSite=Strict` → prevents CSRF
+> ⚠️ **Never store sensitive data in `localStorage`** — vulnerable to XSS attacks.
 
 **When to use what:**
 ```
@@ -467,7 +203,7 @@ Tracking/consent  → cookies (server needs access)
 
 ## Tradeoffs & Pitfalls
 
-- **`==` vs `===`:** Always use `===` (strict equality). `==` does type coercion (`"0" == false` is `true`).
+> ⚡ **Always use `===`** (strict equality). `==` does type coercion (`"0" == false` is `true`).
 - **Arrow functions:** No own `this`, `arguments`, or `super`. Can't be used as constructors.
 - **`typeof null === "object"`:** Known JS quirk. Check null explicitly.
 - **Floating point:** `0.1 + 0.2 !== 0.3`. Use `toFixed()` or integer math for money.
@@ -478,80 +214,16 @@ Tracking/consent  → cookies (server needs access)
 
 ## Interview Questions
 
-1. **What is hoisting?** Variable/function declarations are moved to top of scope during compilation. `var` → `undefined`, `let`/`const` → TDZ error.
-2. **Explain closures with example.** Function retaining outer scope variables after outer function returns. Used in module pattern, memoization.
-3. **What is the event loop?** Mechanism that processes call stack, microtask queue (Promises), then macrotask queue (setTimeout) in a loop.
-4. **Difference between `==` and `===`?** `==` coerces types before comparing. `===` compares type AND value.
-5. **What is a Promise?** Object representing eventual completion/failure of an async operation. States: pending, fulfilled, rejected.
-6. **`Promise.all` vs `Promise.allSettled` vs `Promise.race`?** `all` = fail-fast on first rejection. `allSettled` = wait for all, return all results. `race` = first to resolve/reject wins.
-7. **What is debouncing vs throttling?** Debounce = execute after delay, reset on new trigger. Throttle = execute at most once per interval.
-8. **Explain prototypal inheritance.** Objects inherit from other objects via prototype chain. `Object.create()`, `class extends`.
-
----
-
-## Tooling & Package Management
-
-### `npm audit`
-
-Scans your project's dependency tree for known security vulnerabilities.
-
-```bash
-# Run a vulnerability audit
-npm audit
-
-# Output: table of vulnerabilities with severity (low/moderate/high/critical)
-
-# Auto-fix vulnerabilities (updates to patched versions)
-npm audit fix
-
-# Force fix — may include breaking major version changes
-npm audit fix --force
-
-# Generate JSON report (useful for CI/CD pipelines)
-npm audit --json
-```
-
-**How it works:**
-1. Reads `package-lock.json` to get exact installed versions
-2. Checks against npm's security advisory database
-3. Reports vulnerable packages, severity, and recommended fix version
-
-**In CI/CD:** Add `npm audit --audit-level=high` to fail builds on high/critical vulnerabilities.
-
-### `package.json` vs `package-lock.json`
-
-| | `package.json` | `package-lock.json` |
-|-|---------------|--------------------|
-| **Purpose** | Project manifest — metadata, scripts, dependency ranges | Exact dependency tree lock |
-| **Version format** | Ranges: `^1.2.3`, `~1.2.3`, `>=1.0.0` | Exact: `1.2.3` |
-| **Created by** | `npm init` or manually | Auto-generated by `npm install` |
-| **Commit to git?** | Always | Always (ensures reproducible builds) |
-| **Editable?** | Yes (manually) | No (auto-managed by npm) |
-| **Contains** | Direct dependencies only | Entire nested dependency tree |
-
-**Version range symbols:**
-```
-^1.2.3  →  >=1.2.3 and <2.0.0  (minor + patch updates allowed)
-~1.2.3  →  >=1.2.3 and <1.3.0  (patch updates only)
-1.2.3   →  exactly 1.2.3       (pinned)
-```
-
-**Why `package-lock.json` matters:**
-- Without it, `npm install` on different machines may install different versions (within the `^`/`~` range)
-- Guarantees every developer and CI/CD gets the exact same dependency versions
-- Makes builds reproducible and deterministic
-
-**Common scenario:**
-```bash
-# Developer A adds a package
-npm install lodash      # Updates both package.json AND package-lock.json
-
-# Developer B pulls and installs
-npm install             # Reads package-lock.json → gets exact same versions
-
-# To update all dependencies to latest allowed by ranges
-npm update              # Updates package-lock.json
-```
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is hoisting?** | Declarations moved to top of scope. `var` → `undefined`, `let`/`const` → TDZ error |
+| 2 | **Explain closures** | Function retaining outer scope variables after outer function returns. Used in module pattern, memoization |
+| 3 | **What is the event loop?** | Processes call stack → microtask queue (Promises) → macrotask queue (setTimeout) in a loop |
+| 4 | **`==` vs `===`?** | `==` coerces types. `===` compares type **AND** value |
+| 5 | **What is a Promise?** | Object representing eventual completion/failure. States: **pending**, **fulfilled**, **rejected** |
+| 6 | **`Promise.all` vs `allSettled` vs `race`?** | `all` = fail-fast. `allSettled` = wait for all. `race` = first to settle wins |
+| 7 | **Debouncing vs throttling?** | Debounce = execute after delay, reset on new trigger. Throttle = at most once per interval |
+| 8 | **Prototypal inheritance?** | Objects inherit via prototype chain. `Object.create()`, `class extends` |
 
 ---
 

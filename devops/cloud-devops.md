@@ -136,7 +136,7 @@ Client → API Gateway (load balancing, auth)
 
 - **PaaS vs IaaS:** PaaS = faster development, less control. IaaS = full control, more maintenance.
 - **Consumption plan limits:** Cold starts, execution timeout (5 min default, 10 max). Use Premium plan for latency-sensitive functions.
-- **Kafka overkill:** Don't use Kafka for simple job queues. RabbitMQ is simpler and lower latency.
+> ⚠️ **Kafka overkill:** Don't use Kafka for simple job queues. RabbitMQ is simpler and lower latency.
 - **Deployment slots swap:** Always test in staging slot first. Swap = instant, no downtime.
 - **Auto-scaling costs:** Scale-out rules without scale-in limits = unexpected bills.
 - **Container vs Serverless:** Containers for persistent workloads. Serverless for event-driven, sporadic loads.
@@ -145,16 +145,18 @@ Client → API Gateway (load balancing, auth)
 
 ## Interview Questions — Rapid Fire
 
-1. **IaaS vs PaaS vs SaaS?** IaaS = you manage OS+apps. PaaS = you manage app+data. SaaS = you just use it.
-2. **What is Azure App Service?** PaaS for hosting web apps, REST APIs. Supports auto-scaling, deployment slots, SSL.
-3. **Scale Up vs Scale Out?** Up = bigger machine. Out = more instances.
-4. **What are deployment slots?** Separate environments under one App Service. Swap for zero-downtime releases.
-5. **What is Azure Functions?** Serverless compute. Triggers: HTTP, Timer, Blob, Queue. Pay per execution.
-6. **What are Durable Functions?** Stateful serverless. Orchestrator coordinates activity functions in sequence.
-7. **Kafka vs RabbitMQ?** Kafka = event streaming, high throughput, persistent log. RabbitMQ = task queues, lower latency, complex routing.
-8. **What is Docker?** Packages app + dependencies into a portable container.
-9. **What is Kubernetes?** Orchestrates containers at scale — deployment, scaling, networking, self-healing.
-10. **Availability zones?** Physically separate datacenters in a region. Minimum 3 per region for redundancy.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **IaaS vs PaaS vs SaaS?** | IaaS = manage OS+apps. PaaS = manage app+data. SaaS = just use it |
+| 2 | **Azure App Service?** | PaaS for web apps/APIs. Auto-scaling, deployment slots, SSL |
+| 3 | **Scale Up vs Scale Out?** | Up = bigger machine. Out = **more instances** |
+| 4 | **Deployment slots?** | Separate environments under one App Service. Swap for **zero-downtime** releases |
+| 5 | **Azure Functions?** | Serverless compute. Triggers: HTTP, Timer, Blob, Queue. **Pay per execution** |
+| 6 | **Durable Functions?** | Stateful serverless. Orchestrator coordinates activity functions in sequence |
+| 7 | **Kafka vs RabbitMQ?** | Kafka = event streaming, high throughput. RabbitMQ = task queues, lower latency |
+| 8 | **Docker?** | Packages app + dependencies into a **portable container** |
+| 9 | **Kubernetes?** | Orchestrates containers at scale — deployment, scaling, self-healing |
+| 10 | **Availability zones?** | Physically separate datacenters. Min **3** per region for redundancy |
 
 ---
 

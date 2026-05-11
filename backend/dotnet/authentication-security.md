@@ -53,6 +53,8 @@
 
 ### Token Security Best Practices
 
+> ⚠️ **Never store tokens in `localStorage`** — vulnerable to XSS. Use **HTTP-only cookies** instead.
+
 | Practice | Why |
 |----------|-----|
 | Use HTTPS | Prevent token interception in transit |
@@ -66,6 +68,8 @@
 ---
 
 ## Web Security Threats & Prevention
+
+> ⚡ **Defense in depth:** Layer multiple protections. No single measure is sufficient.
 
 ### OWASP Top Threats
 
@@ -570,16 +574,18 @@ Step 10:  └──► If refresh token also expired → Logout, redirect to /lo
 
 ## Interview Questions — Rapid Fire
 
-1. **Authentication vs Authorization?** AuthN = verify identity. AuthZ = verify permissions.
-2. **How does OAuth 2.0 work?** Client gets auth code from auth server, exchanges for tokens, presents token to resource server.
-3. **What are JWT claims?** Key-value pairs in token payload (sub, name, email, roles, exp).
-4. **How to prevent SQL injection?** Parameterized queries. Never concatenate user input into SQL.
-5. **XSS vs CSRF?** XSS = inject malicious scripts. CSRF = trick user into making unintended requests.
-6. **Where to store tokens?** HTTP-only cookies (not localStorage — XSS vulnerable).
-7. **Client Credentials grant?** Server-to-server auth without user involvement. Machine-to-machine.
-8. **What is CORS?** Browser policy that blocks cross-origin requests. Server must explicitly allow origins.
-9. **What is Content Security Policy?** HTTP header that restricts resource sources, preventing XSS.
-10. **How to secure a microservice?** API Gateway auth, JWT validation, HTTPS, input validation, rate limiting.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **Authentication vs Authorization?** | AuthN = **verify identity**. AuthZ = **verify permissions** |
+| 2 | **How does OAuth 2.0 work?** | Client gets auth code → exchanges for tokens → presents token to resource server |
+| 3 | **JWT claims?** | Key-value pairs in payload (`sub`, `name`, `email`, `roles`, `exp`) |
+| 4 | **Prevent SQL injection?** | **Parameterized queries.** Never concatenate user input into SQL |
+| 5 | **XSS vs CSRF?** | XSS = inject malicious **scripts**. CSRF = trick user into **unintended requests** |
+| 6 | **Where to store tokens?** | **HTTP-only cookies** (not localStorage — XSS vulnerable) |
+| 7 | **Client Credentials grant?** | Server-to-server auth **without user involvement**. Machine-to-machine |
+| 8 | **What is CORS?** | Browser policy blocking cross-origin requests. Server must explicitly allow origins |
+| 9 | **Content Security Policy?** | HTTP header that restricts resource sources, **preventing XSS** |
+| 10 | **Secure a microservice?** | API Gateway auth, JWT validation, HTTPS, input validation, rate limiting |
 
 ---
 

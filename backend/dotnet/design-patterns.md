@@ -17,7 +17,8 @@
 ## Deep Dive — Key Patterns
 
 ### 1. Singleton (Creational)
-**Intent:** Ensure a class has only one instance with a global access point.
+
+> ***Ensure a class has only **one instance** with a global access point.***
 
 ```csharp
 public sealed class Logger
@@ -45,14 +46,15 @@ public sealed class Logger
 }
 ```
 
-**Why `sealed`?** Prevents nested class from inheriting and creating another instance.
-**Double-checked locking:** First `null` check avoids lock overhead after initialization.
+> 💡 **Why `sealed`?** Prevents nested class from inheriting and creating another instance.
+> **Double-checked locking:** First `null` check avoids lock overhead after initialization.
 **Use case:** Logging, configuration, connection pools, load balancers.
 
 ---
 
 ### 2. Factory / Abstract Factory (Creational)
-**Intent:** Create objects without exposing creation logic. Let subclasses decide which class to instantiate.
+
+> ***Create objects without exposing creation logic. Client doesn't know concrete types.***
 
 ```csharp
 // Abstract Factory
@@ -85,7 +87,8 @@ ISmartPhone phone = factory.CreateSmartPhone();
 ---
 
 ### 3. Strategy (Behavioral)
-**Intent:** Define a family of algorithms, encapsulate each one, make them interchangeable.
+
+> ***Define a family of algorithms, encapsulate each, make them interchangeable. Eliminates `if/else` chains.***
 
 ```csharp
 // This is the OCP example from SOLID
@@ -109,7 +112,8 @@ await strategy.CopyVersion(payload);
 ---
 
 ### 4. Observer (Behavioral)
-**Intent:** One-to-many dependency. When subject changes state, all observers are notified automatically.
+
+> ***One-to-many dependency. When subject changes, all observers are notified automatically.***
 
 ```csharp
 // Subject
@@ -137,7 +141,8 @@ public class EmailSubscriber : ISubscriber
 ---
 
 ### 5. Chain of Responsibility (Behavioral)
-**Intent:** Pass request along a chain of handlers. Each handler decides to process or pass to the next.
+
+> ***Pass request along a chain. Each handler decides to process or pass to next.***
 
 ```csharp
 public abstract class LeaveHandler
@@ -170,7 +175,8 @@ teamLead.Handle(new LeaveRequest { Days = 5 });
 ---
 
 ### 6. Facade (Structural)
-**Intent:** Provide a simplified interface to a complex subsystem.
+
+> ***Simplified interface to a complex subsystem. One method orchestrates multiple services.***
 
 ```csharp
 public class OrderFacade
@@ -194,7 +200,8 @@ public class OrderFacade
 ---
 
 ### 7. Repository + Unit of Work (Structural/Enterprise)
-**Intent:** Abstract data access. Ensure multiple repositories share one DB context per transaction.
+
+> ***Abstract data access. UoW ensures multiple repositories share one DB context per transaction.***
 
 ```csharp
 // Generic Repository
@@ -254,16 +261,18 @@ public interface IUnitOfWork : IDisposable
 
 ## Interview Questions — Rapid Fire
 
-1. **What is Singleton?** One instance per app. Use `sealed` class + double-checked locking + private constructor.
-2. **Factory vs Abstract Factory?** Factory creates one type. Abstract Factory creates families of related objects.
-3. **When to use Strategy?** When you have multiple algorithms/behaviors selectable at runtime. Replaces if/else chains.
-4. **What is CQRS?** Separate read/write models. Read = optimized queries. Write = business rules + validation.
-5. **What is Saga?** Cross-service transaction pattern. Each step has compensating action for rollback.
-6. **What is Repository pattern?** Abstracts data access behind interface. Enables swapping DB implementations.
-7. **Observer vs Pub/Sub?** Observer = direct subscription. Pub/Sub = decoupled via message broker.
-8. **What is Facade?** Simplified interface to complex subsystem. One method orchestrates multiple services.
-9. **Chain of Responsibility use case?** Middleware pipelines, approval workflows, request validation chains.
-10. **DI types?** Constructor (most common), Property, Method injection.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is Singleton?** | **One instance** per app. `sealed` + double-checked locking + private constructor |
+| 2 | **Factory vs Abstract Factory?** | Factory = one type. Abstract Factory = **families** of related objects |
+| 3 | **When Strategy?** | Multiple algorithms selectable at runtime. **Replaces if/else chains** |
+| 4 | **What is CQRS?** | Separate read/write models. Read = optimized queries. Write = business rules |
+| 5 | **What is Saga?** | Cross-service transactions. Each step has **compensating action** for rollback |
+| 6 | **Repository pattern?** | Abstracts data access behind interface. Enables **swapping DB** implementations |
+| 7 | **Observer vs Pub/Sub?** | Observer = direct subscription. Pub/Sub = **decoupled** via message broker |
+| 8 | **What is Facade?** | Simplified interface to complex subsystem. **One method** orchestrates many services |
+| 9 | **Chain of Responsibility?** | Middleware pipelines, approval workflows, request validation chains |
+| 10 | **DI types?** | **Constructor** (most common), Property, Method injection |
 
 ---
 

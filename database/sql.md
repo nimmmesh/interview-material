@@ -6,6 +6,8 @@
 
 ### Normalization vs Denormalization
 
+> ***Normalize for write integrity (OLTP). Denormalize for read speed (OLAP).***
+
 | | Normalization | Denormalization |
 |-|--------------|----------------|
 | Goal | Eliminate redundancy | Improve read performance |
@@ -257,7 +259,7 @@ GROUP BY Name
 HAVING SUM(Marks) > 200;
 ```
 
-> **`WHERE` vs `HAVING`:** `WHERE` filters rows *before* grouping. `HAVING` filters groups *after* aggregation. You cannot use aggregate functions in `WHERE`.
+> 💡 **`WHERE` vs `HAVING`:** `WHERE` filters rows *before* grouping. `HAVING` filters groups *after* aggregation. You cannot use aggregate functions in `WHERE`.
 
 ### Temp Tables vs Table Variables
 
@@ -336,7 +338,7 @@ CREATE TABLE OrderItems (
 
 ## Tradeoffs & Pitfalls
 
-- **Over-indexing:** Each index = storage + write overhead on INSERT/UPDATE/DELETE.
+> ⚠️ **Over-indexing:** Each index = storage + write overhead on INSERT/UPDATE/DELETE.
 - **`COUNT(*)` vs `COUNT(column)`:** `COUNT(*)` counts NULLs. `COUNT(column)` skips NULLs.
 - **Cursors:** Extremely slow. Replace with set-based operations or CTEs.
 - **`UNION` vs `UNION ALL`:** UNION removes duplicates (slower). UNION ALL keeps all rows (faster).
@@ -349,16 +351,18 @@ CREATE TABLE OrderItems (
 
 ## Interview Questions — Rapid Fire
 
-1. **What is normalization?** DB design technique to eliminate data redundancy. 1NF→2NF→3NF.
-2. **Clustered vs Non-Clustered index?** Clustered = data stored in index order (1 per table). Non-clustered = separate structure with pointers (many per table).
-3. **SP vs Function?** SP can do DML + transactions + output params. Function must return value, SELECT only, callable in SELECT.
-4. **What is a CTE?** Temporary named result set defined with `WITH`. Can be recursive.
-5. **How to find Nth highest salary?** `ROW_NUMBER() OVER (ORDER BY Salary DESC)` in CTE, filter `WHERE RN = N`.
-6. **How to delete duplicates?** `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`, delete where RN > 1.
-7. **Temp table vs Table variable?** Temp = TempDB + transactions + indexes. Table var = memory + faster for small data.
-8. **What is a trigger?** SQL code auto-executed on table DML events. Uses INSERTED/DELETED magic tables.
-9. **`UNION` vs `UNION ALL`?** UNION removes duplicates. UNION ALL keeps all (faster).
-10. **How to optimize slow query?** Check execution plan, add indexes, avoid SELECT *, use EXISTS over IN, avoid cursors.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is normalization?** | DB design to eliminate redundancy. **1NF→2NF→3NF** |
+| 2 | **Clustered vs Non-Clustered?** | Clustered = data in index order (**1**/table). Non-clustered = pointers (many/table) |
+| 3 | **SP vs Function?** | SP = DML + transactions + output params. Function = must return value, SELECT only |
+| 4 | **What is a CTE?** | Temporary named result set with `WITH`. Can be **recursive** |
+| 5 | **Nth highest salary?** | `ROW_NUMBER() OVER (ORDER BY Salary DESC)` in CTE, filter `RN = N` |
+| 6 | **Delete duplicates?** | `ROW_NUMBER() OVER (PARTITION BY ...)`, delete where `RN > 1` |
+| 7 | **Temp table vs Table var?** | Temp = TempDB + indexes. Table var = memory, faster for **small data** |
+| 8 | **What is a trigger?** | Auto-executed SQL on DML events. Uses `INSERTED`/`DELETED` magic tables |
+| 9 | **`UNION` vs `UNION ALL`?** | UNION removes duplicates (slower). UNION ALL keeps all (**faster**) |
+| 10 | **Optimize slow query?** | Check execution plan, add indexes, avoid `SELECT *`, use `EXISTS` over `IN` |
 
 ---
 

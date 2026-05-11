@@ -1,5 +1,13 @@
 # Coding Problems — Interview Preparation
 
+| # | Problem | Pattern | Difficulty | Time |
+|---|---------|---------|------------|------|
+| 1 | Two Sum / Pair Sum | Hash Set | Easy | O(n) |
+| 2 | Longest Palindromic Substring | Expand from center | Medium | O(n²) |
+| 3 | Merge Intervals | Sort + merge | Medium | O(n log n) |
+| 4 | Second Highest Element | Single pass | Easy | O(n) |
+| 5 | Max Consecutive Ones | Sliding window | Easy | O(n) |
+
 ---
 
 ## Problem 1: Two Sum / Pair Sum
@@ -222,46 +230,6 @@ console.log(findMaxConsecutiveOnes([]));                   // 0
 ### Variations
 - **Max Consecutive Ones II** (LeetCode #487): You may flip at most one 0 → sliding window with at most one 0 inside
 - **Max Consecutive Ones III** (LeetCode #1004): You may flip at most K zeros → sliding window tracking zero count
-
----
-
-## Problem 6: LINQ One-Liners (C#)
-
-**Pattern:** GroupBy + Aggregation
-
-### Top K Frequent Elements
-```csharp
-var result = nums.GroupBy(x => x)
-    .OrderByDescending(g => g.Count())
-    .Take(k)
-    .Select(g => g.Key);
-```
-
-### First Non-Repeating Character
-```csharp
-var result = input.GroupBy(c => c)
-    .Where(g => g.Count() == 1)
-    .Select(g => g.Key)
-    .FirstOrDefault();
-```
-
-### Flatten Nested Lists
-```csharp
-var flat = list.SelectMany(x => x);
-```
-
-### Word Frequency Dictionary
-```csharp
-var freq = words.GroupBy(w => w)
-    .ToDictionary(g => g.Key, g => g.Count());
-```
-
-### Find Duplicates
-```csharp
-var duplicates = nums.GroupBy(x => x)
-    .Where(g => g.Count() > 1)
-    .Select(g => g.Key);
-```
 
 ---
 

@@ -4,6 +4,8 @@
 
 ## Application Performance
 
+> ***Profile first, optimize second. Never guess where the bottleneck is.***
+
 | Area | Techniques |
 |------|-----------|
 | **Memory** | StringBuilder over string concatenation, avoid boxing/unboxing |
@@ -60,6 +62,8 @@
 
 ## Downtime Handling (STAR format)
 
+> ⚡ **6-step framework:** Assess → Communicate → Isolate → Fix → Document → Prevent
+
 1. **Immediate Assessment** — identify root cause quickly
 2. **Communication** — notify team members and stakeholders
 3. **Isolation** — isolate affected components
@@ -82,6 +86,8 @@ INCIDENT:  Assess → Communicate → Isolate → Fix → Document → Prevent
 ---
 
 ## Senior-Level Backend Concepts Checklist
+
+> 💡 **These topics frequently appear in senior/lead interviews. Know at least 2-3 deep examples per category.**
 
 ### Distributed Systems
 - CAP theorem, eventual consistency, strong consistency, partition tolerance

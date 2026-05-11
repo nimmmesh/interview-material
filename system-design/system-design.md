@@ -6,6 +6,8 @@
 
 ### Monolithic vs Microservices
 
+> ***Start monolithic, migrate to microservices when team/scale demands it.***
+
 | | Monolithic | Microservices |
 |-|-----------|--------------|
 | Structure | Single deployable unit | Multiple independent services |
@@ -137,84 +139,6 @@ Closed (normal) → failures exceed threshold → Open (reject all)
 
 ---
 
-## Microfrontends
-
-### What is a Microfrontend?
-A microfrontend extends microservice principles to the frontend — splitting a monolithic frontend into smaller, independently deployable UI applications that compose into a single user experience.
-
-```
-┌──────────────────────────────────────────────────┐
-│                  Container / Shell                │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
-│  │  Team A     │  │  Team B     │  │  Team C     │  │
-│  │  (Angular)  │  │  (React)    │  │  (Vue)      │  │
-│  │  Catalog    │  │  Cart       │  │  Checkout   │  │
-│  └────────────┘  └────────────┘  └────────────┘  │
-└──────────────────────────────────────────────────┘
-```
-
-### Implementation Approaches
-
-| Approach | How | Pros | Cons |
-|----------|-----|------|------|
-| **Module Federation** (Webpack 5) | Load remote modules at runtime | Best DX, shared dependencies, lazy loading | Webpack-only, version alignment needed |
-| **Single-SPA** | Framework-agnostic orchestrator | Polyglot (mix Angular + React), mature ecosystem | Complex setup, global state tricky |
-| **iframes** | Embed each micro-app in iframe | Complete isolation, simple | Poor UX (no shared styles/routing), performance hit |
-| **Web Components** | Each micro-app as custom element | Framework-agnostic, native browser support | Limited tooling, Shadow DOM styling challenges |
-
-### Data Sharing Between Microfrontends
-
-The core challenge is sharing state between independently deployed apps. The patterns mirror what you'd use in a non-microfrontend app, adapted for cross-boundary communication:
-
-| Pattern | How | When to Use | Non-MFE Equivalent |
-|---------|-----|-------------|---------------------|
-| **Custom Events** | `window.dispatchEvent(new CustomEvent('cart-updated', { detail }))` | Loose coupling, simple notifications | Component `@Output()` events |
-| **Shared State Store** | Shared Redux/Zustand store loaded via Module Federation | Complex shared state, multiple consumers | NgRx / Redux in monolith |
-| **URL / Route Params** | Pass data via URL query params or route segments | Navigation-driven data | Angular Router params |
-| **Props / Attributes** | Pass data as Web Component attributes or framework props | Parent → child data flow | `@Input()` bindings |
-| **Pub/Sub (Event Bus)** | Lightweight event bus (RxJS Subject on `window`) | Decoupled, event-driven communication | Service with `BehaviorSubject` |
-| **Shared API Layer** | Each MFE fetches from same backend, caches shared | Independent data fetching | Shared Angular service |
-
-**Custom Events example (framework-agnostic):**
-```javascript
-// Producer (Cart MFE) — dispatches event
-function addToCart(item) {
-  cart.push(item);
-  window.dispatchEvent(new CustomEvent('cart:updated', {
-    detail: { items: cart, total: cart.length }
-  }));
-}
-
-// Consumer (Header MFE) — listens for event
-window.addEventListener('cart:updated', (e) => {
-  document.getElementById('cart-count').textContent = e.detail.total;
-});
-```
-
-**Shared state via Module Federation:**
-```javascript
-// shared-store (remote module exposed by Shell)
-import { BehaviorSubject } from 'rxjs';
-export const user$ = new BehaviorSubject(null);
-export const setUser = (user) => user$.next(user);
-
-// Auth MFE — sets user after login
-import { setUser } from 'shell/shared-store';
-setUser({ name: 'Alice', role: 'admin' });
-
-// Dashboard MFE — reads user
-import { user$ } from 'shell/shared-store';
-user$.subscribe(user => console.log('Logged in:', user?.name));
-```
-
-### Key Design Principles
-- **Independent deployment** — each MFE has its own CI/CD pipeline
-- **Team ownership** — each team owns a vertical slice (UI + API + DB)
-- **Shared nothing** — minimize shared dependencies; share only contracts
-- **Consistent UX** — use a shared design system / component library
-
----
-
 ## Kafka Event Streaming Architecture
 
 ### High-Level Architecture
@@ -311,7 +235,7 @@ consumePaymentEvent(event) {
 
 ### Critical Payment Concepts
 
-**Idempotency:** Prevent duplicate transfers during retries using unique `requestId` / `paymentId`. Repeated requests are safely ignored.
+> ⚡ **Idempotency:** Prevent duplicate transfers during retries using unique `requestId` / `paymentId`. Repeated requests are safely ignored.
 
 **Retry Handling:** Retry queues, exponential backoff, DLQ.
 
@@ -343,16 +267,18 @@ consumePaymentEvent(event) {
 
 ## Interview Questions
 
-1. **How would you design a system for your current project?** .NET Core APIs, Angular frontend, SQL Server, Redis cache, OAuth/JWT auth, Docker/K8s, Azure App Service, Kafka for async.
-2. **How do microservices communicate?** Sync: HTTP/gRPC. Async: message brokers (Kafka/RabbitMQ).
-3. **How to handle distributed transactions?** Saga pattern with compensating transactions.
-4. **How to handle service failures?** Circuit breaker, retry with exponential backoff, fallback responses.
-5. **SQL vs NoSQL?** SQL for structured data + transactions. NoSQL for flexible schema + horizontal scale.
-6. **How to scale a database?** Read replicas, sharding, caching, query optimization.
-7. **What is eventual consistency?** Data will be consistent *eventually* but not immediately after write. Tradeoff for availability.
-8. **How to monitor microservices?** Centralized logging (ELK/App Insights), distributed tracing, health checks, alerting.
-9. **What is an API Gateway?** Single entry point handling auth, rate limiting, routing, load balancing.
-10. **CAP theorem?** Distributed system can guarantee only 2 of 3: Consistency, Availability, Partition tolerance.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **Design your current system?** | .NET APIs, Angular, SQL Server, Redis, OAuth/JWT, Docker/K8s, Kafka |
+| 2 | **Microservice communication?** | Sync: HTTP/gRPC. Async: Kafka/RabbitMQ |
+| 3 | **Distributed transactions?** | **Saga pattern** with compensating transactions |
+| 4 | **Handle service failures?** | Circuit breaker, retry + exponential backoff, fallback responses |
+| 5 | **SQL vs NoSQL?** | SQL = structured + ACID. NoSQL = flexible schema + horizontal scale |
+| 6 | **Scale a database?** | Read replicas, sharding, caching, query optimization |
+| 7 | **Eventual consistency?** | Data consistent *eventually*, not immediately. Tradeoff for availability |
+| 8 | **Monitor microservices?** | Centralized logging (ELK), distributed tracing, health checks, alerting |
+| 9 | **API Gateway?** | Single entry point: auth, rate limiting, routing, load balancing |
+| 10 | **CAP theorem?** | Pick **2 of 3**: Consistency, Availability, Partition tolerance |
 
 ---
 

@@ -11,6 +11,9 @@
 - Can be hosted in IIS or self-hosted (OWIN, console app, Windows service).
 
 ### REST Principles
+
+> ***Resource-oriented URLs + HTTP verbs + stateless + JSON. That's REST.***
+
 - **Resource-oriented:** URLs represent resources (`/api/v1/students`), not actions.
 - **Stateless:** Each request contains all info needed to process it.
 - **HTTP methods = operations:** GET (read), POST (create), PUT (replace), PATCH (partial update), DELETE (remove).
@@ -68,7 +71,7 @@ public IActionResult PatchUser(int id, [FromBody] JsonPatchDocument<UserDto> pat
 
 ### Passing Data in GET Requests
 
-GET requests should NOT have a request body (though HTTP technically allows it, most servers/proxies ignore or reject it).
+> ⚠️ **GET requests should NOT have a request body.** Most servers/proxies ignore or reject it.
 
 **Recommended approaches:**
 
@@ -108,7 +111,7 @@ public IActionResult GetData([FromHeader(Name = "X-Tenant-Id")] int tenantId) { 
 - Proxies, CDNs, and browsers may strip or ignore GET body
 - REST convention: data retrieval params go in URL
 
-**For complex search with many filters:** Use POST with a body to `/api/users/search` — this is an accepted REST exception.
+> 💡 **For complex search with many filters:** Use `POST` with a body to `/api/users/search` — this is an accepted REST exception.
 
 ### HTTP Status Codes
 
@@ -272,10 +275,10 @@ Default for uncaught exceptions: **500 Internal Server Error**.
 
 | | Entity Framework | Dapper |
 |-|-----------------|--------|
-| Type | Full ORM | Micro ORM |
-| Features | Change tracking, lazy loading, migrations | Raw SQL, manual mapping |
-| Performance | Slower | Faster (2nd fastest ORM) |
-| Use case | Complex domain models | Performance-critical queries |
+| **Type** | Full ORM | Micro ORM |
+| **Features** | Change tracking, lazy loading, migrations | Raw SQL, manual mapping |
+| **Performance** | Slower | **Faster** (2nd fastest ORM) |
+| **Use case** | Complex domain models | Performance-critical queries |
 
 ### When to Use Raw SQL vs ORM
 
@@ -332,7 +335,7 @@ public async Task BulkInsertLogs(List<LogEntry> logs)
 }
 ```
 
-**Rule of thumb:** Start with EF for everything. Switch to Dapper/raw SQL for specific queries where EF is measurably slow (profiled, not guessed).
+> 💡 **Rule of thumb:** Start with EF for everything. Switch to Dapper/raw SQL for specific queries where EF is **measurably slow** (profiled, not guessed).
 
 ---
 
@@ -399,16 +402,18 @@ var list = large.ToList();                // NOW executes — result: { 4 }
 
 ## Interview Questions — Rapid Fire
 
-1. **What is REST?** Client-server architecture using HTTP verbs on resources, stateless, returns JSON/XML.
-2. **Web API vs WCF?** Web API = lightweight HTTP/JSON. WCF = heavyweight multi-protocol SOAP.
-3. **What is content negotiation?** Server selects response format based on `Accept` header.
-4. **How to handle CORS?** Install CORS package, enable globally or per-controller with allowed origins.
-5. **FromUri vs FromBody?** Simple types → URI. Complex types → body.
-6. **What is EF?** ORM that maps C# objects to DB tables. Supports Code First, DB First, Model First.
-7. **EF vs Dapper?** EF = full ORM (change tracking, migrations). Dapper = micro ORM (raw SQL, faster).
-8. **What is OData?** Protocol for queryable REST APIs with standard CRUD operations.
-9. **API versioning approaches?** URI (`/v1/`), query string, header, media type.
-10. **Where is bearer token stored?** Client-side. Server verifies signature, doesn't store it.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is REST?** | Client-server arch using HTTP verbs on resources, stateless, returns JSON/XML |
+| 2 | **Web API vs WCF?** | Web API = lightweight HTTP/JSON. WCF = heavyweight multi-protocol SOAP |
+| 3 | **Content negotiation?** | Server selects response format based on `Accept` header |
+| 4 | **Handle CORS?** | Install CORS package, enable globally or per-controller with allowed origins |
+| 5 | **FromUri vs FromBody?** | Simple types → URI. Complex types → body |
+| 6 | **What is EF?** | ORM mapping C# objects to DB tables. Code First, DB First, Model First |
+| 7 | **EF vs Dapper?** | EF = full ORM (change tracking, migrations). Dapper = micro ORM (**raw SQL, faster**) |
+| 8 | **What is OData?** | Protocol for queryable REST APIs with standard CRUD operations |
+| 9 | **API versioning?** | URI (`/v1/`), query string, header, media type |
+| 10 | **Bearer token stored?** | **Client-side.** Server verifies signature, doesn't store it |
 
 ---
 

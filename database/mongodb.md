@@ -6,6 +6,8 @@
 
 ### Document Model
 
+> ***MongoDB stores data as BSON documents in collections. No rigid schema — documents can vary.***
+
 MongoDB stores data as BSON (Binary JSON) documents inside collections.
 
 ```json
@@ -63,7 +65,9 @@ MongoDB stores data as BSON (Binary JSON) documents inside collections.
 
 ### Aggregation Pipeline
 
-The aggregation pipeline processes documents through a sequence of stages. Each stage transforms the data and passes results to the next stage.
+> ***Sequential stages that transform documents: `$match` → `$group` → `$sort` → `$project`. Filter early for performance.***
+
+The aggregation pipeline processes documents through a sequence of stages.
 
 ```txt
 Collection → $match → $group → $sort → $project → Result
@@ -87,7 +91,7 @@ Collection → $match → $group → $sort → $project → Result
 
 #### `$match` — Filter Documents
 
-Always place `$match` as early as possible to reduce documents processed by later stages.
+> ⚡ **Always place `$match` as early as possible** to reduce documents processed by later stages.
 
 ```javascript
 db.orders.aggregate([
@@ -326,10 +330,113 @@ Use `explain()`, MongoDB profiler, APM tools, query execution stats, and API lat
 
 ---
 
+### Index Cardinality
+
+**Cardinality** = number of distinct values in a field. Directly impacts how effective an index is.
+
+#### High vs Low Cardinality
+
+| | High Cardinality | Low Cardinality |
+|-|-----------------|-----------------|
+| **Example** | `email`, `userId`, `_id` | `status` (active/inactive), `gender`, `boolean flags` |
+| **Distinct values** | Many (close to document count) | Few (2-10 values) |
+| **Index effectiveness** | Excellent — each lookup narrows to few documents | Poor — index scan still returns large portion of collection |
+| **Selectivity** | High (queries filter out most documents) | Low (queries still match many documents) |
+
+> 💡 **Rule:** Index fields with **high cardinality first**. Low-cardinality fields alone are rarely worth indexing.
+
+#### Compound Index Ordering
+
+In compound indexes, **put the highest cardinality field first** for maximum selectivity:
+
+```javascript
+// Collection: orders (1M documents)
+// status: 3 distinct values (pending, shipped, delivered)
+// customerId: 50K distinct values
+
+// ❌ Low cardinality first — poor selectivity
+db.orders.createIndex({ status: 1, customerId: 1 });
+// Query { status: "pending", customerId: "C123" }
+// First narrows to ~333K docs, then filters by customerId
+
+// ✅ High cardinality first — excellent selectivity
+db.orders.createIndex({ customerId: 1, status: 1 });
+// Query { status: "pending", customerId: "C123" }
+// First narrows to ~20 docs, then filters by status
+```
+
+**Exception — ESR Rule (Equality, Sort, Range):**
+```javascript
+// For queries with equality + sort + range:
+// Put Equality fields first, then Sort fields, then Range fields
+// regardless of cardinality
+
+db.orders.createIndex({ status: 1, createdAt: 1, amount: 1 });
+// Supports: { status: "pending" } sorted by createdAt, with amount range
+```
+
+#### Measuring Cardinality
+
+```javascript
+// Check distinct count for a field
+db.orders.distinct("status").length;        // 3 → low cardinality
+db.orders.distinct("customerId").length;    // 50000 → high cardinality
+
+// Using aggregation for large collections (distinct has 16MB limit)
+db.orders.aggregate([
+  { $group: { _id: "$status" } },
+  { $count: "distinctCount" }
+]);
+```
+
+#### Using `explain()` to Validate Index Effectiveness
+
+```javascript
+db.orders.find({ customerId: "C123", status: "pending" })
+  .explain("executionStats");
+
+// Key fields to check:
+// executionStats.totalKeysExamined    → keys scanned in index
+// executionStats.totalDocsExamined    → documents fetched
+// executionStats.nReturned            → documents returned
+// 
+// Ideal: totalDocsExamined ≈ nReturned (no wasted scans)
+// Bad: totalDocsExamined >> nReturned (index not selective enough)
+```
+
+#### Sparse & Partial Indexes
+
+For fields that don't exist in every document, avoid bloated indexes:
+
+```javascript
+// Sparse index — only indexes documents where the field exists
+db.users.createIndex({ phoneNumber: 1 }, { sparse: true });
+// Skips documents without phoneNumber → smaller index, faster lookups
+
+// Partial index — indexes only documents matching a filter
+db.orders.createIndex(
+  { createdAt: 1 },
+  { partialFilterExpression: { status: "pending" } }
+);
+// Only indexes pending orders → much smaller index for active order queries
+```
+
+| | Regular Index | Sparse Index | Partial Index |
+|-|--------------|-------------|---------------|
+| **Indexes** | All documents | Only docs where field exists | Only docs matching filter |
+| **Size** | Largest | Smaller | Smallest (most targeted) |
+| **Use case** | Field exists in all docs | Optional/rare fields | Query-specific optimization |
+
+---
+
 ## Quick Reference
 
 ```txt
 CRUD:           insertOne | insertMany | find | updateOne | updateMany | deleteOne | deleteMany
 AGGREGATION:    $match | $group | $project | $sort | $limit | $skip | $unwind | $lookup | $facet
 ACCUMULATORS:   $sum | $avg | $min | $max | $count | $push | $addToSet | $first | $last
+CARDINALITY:    High (email, userId) → index first | Low (status, boolean) → avoid solo index
+INDEX ORDER:    High cardinality first | ESR rule (Equality → Sort → Range) for complex queries
+EXPLAIN:        totalDocsExamined ≈ nReturned = good | >> nReturned = bad selectivity
+SPARSE/PARTIAL: sparse (field exists) | partial (filter match) → smaller, targeted indexes
 ```

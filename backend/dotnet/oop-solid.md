@@ -67,10 +67,12 @@ public class Document : IStore, ICompress
 **Same method in two interfaces?** Use explicit implementation: `ISupplier.MethodName()`.
 
 ### Static Class
+
+> 💡 **Singleton ≠ Static class:** Singleton allows **one instance with state**; static class has **no instances**.
+
 - Cannot be instantiated. All members must be `static`.
 - Is implicitly `sealed`. No instance constructors.
 - Use for stateless utility methods (e.g., `TemperatureConverter.CelsiusToFahrenheit()`).
-- **Singleton ≠ Static class:** Singleton allows one instance with state; static class has no instances.
 
 ### `virtual` / `override` / `new`
 - `virtual` → base class declares method can be overridden
@@ -89,7 +91,7 @@ obj.Show(); // override → calls B.Show() | new → calls A.Show()
 ### SOLID Principles
 
 #### S — Single Responsibility Principle (SRP)
-> A class should have one, and only one, reason to change.
+> ⚡ **A class should have one, and only one, reason to change.**
 
 **Violation:** `Customer` class doing both DB operations AND logging.
 **Fix:** Extract logging into a separate `Logger` class.
@@ -104,7 +106,7 @@ Data/        → Database access, query building
 Each layer has ONE reason to change. Database migration → only touches `Data`.
 
 #### O — Open/Closed Principle (OCP)
-> Open for extension, closed for modification.
+> ⚡ **Open for extension, closed for modification.**
 
 **Violation:** Growing `if/else` chains when new types are added.
 **Fix:** Strategy pattern — each behavior is a class implementing a common interface.
@@ -133,7 +135,7 @@ public ICopyOperationStrategy Create(string operation) => operation switch
 ```
 
 #### L — Liskov Substitution Principle (LSP)
-> Subtypes must be substitutable for their base types without breaking behavior.
+> ⚡ **Subtypes must be substitutable for their base types without breaking behavior.**
 
 **Violation:** `Enquiry : Customer` throws `NotImplementedException` on `Add()`.
 **Fix:** Split into `IDiscount` and `IDatabase` interfaces. `Enquiry` implements only `IDiscount`.
@@ -145,7 +147,7 @@ public ICopyOperationStrategy Create(string operation) => operation switch
 - No `NotImplementedException` in inherited methods
 
 #### I — Interface Segregation Principle (ISP)
-> No client should be forced to depend on methods it doesn't use.
+> ⚡ **No client should be forced to depend on methods it doesn't use.**
 
 **Bad — fat interface:**
 ```csharp
@@ -175,9 +177,9 @@ public interface IDeleteObligationsRepository
 ```
 
 #### D — Dependency Inversion Principle (DIP)
-> High-level modules should not depend on low-level modules. Both should depend on abstractions.
+> ⚡ **High-level modules should not depend on low-level modules. Both should depend on abstractions.**
 
-**DIP ≠ DI:** DIP is a design principle (depend on abstractions). DI is a technique (inject at runtime).
+> ⚠️ **DIP ≠ DI:** DIP is a design **principle** (depend on abstractions). DI is a **technique** (inject at runtime).
 
 **Flow:**
 ```
@@ -254,16 +256,18 @@ public static bool AreEqual<T>(T val1, T val2) => val1.Equals(val2);
 
 ## Interview Questions — Rapid Fire
 
-1. **What are the 4 pillars of OOP?** Encapsulation, Abstraction, Inheritance, Polymorphism.
-2. **Abstract class vs Interface — when to use each?** Abstract = shared implementation for related types. Interface = contract for unrelated types + multiple inheritance.
-3. **Can a class inherit multiple abstract classes?** No. Only one abstract class, but multiple interfaces.
-4. **Explain SOLID in one line each.** S=one reason to change, O=extend don't modify, L=subtypes are substitutable, I=small focused interfaces, D=depend on abstractions.
-5. **What is a delegate?** Type-safe function pointer. Enables passing methods as parameters.
-6. **`var` vs `dynamic`?** `var` = compile-time inference (fixed). `dynamic` = runtime resolution (flexible, no IntelliSense).
-7. **What is an extension method?** Static method in static class with `this` modifier on first param. Adds methods to existing types.
-8. **What is a sealed class?** Cannot be inherited. Used for security, preventing unintended derivation.
-9. **What is a partial class?** Class definition split across multiple files. Compiled as one class.
-10. **What is the `using` statement?** Ensures `Dispose()` is called even if exception thrown. Syntactic sugar for try/finally.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **4 pillars of OOP?** | Encapsulation, Abstraction, Inheritance, Polymorphism |
+| 2 | **Abstract class vs Interface?** | Abstract = shared impl for **related** types. Interface = contract for **unrelated** types + multiple inheritance |
+| 3 | **Multiple abstract classes?** | No. **One** abstract class, but **multiple** interfaces |
+| 4 | **SOLID in one line each?** | S=one reason to change, O=extend don't modify, L=subtypes substitutable, I=small interfaces, D=depend on abstractions |
+| 5 | **What is a delegate?** | Type-safe function pointer. Enables passing methods as parameters |
+| 6 | **`var` vs `dynamic`?** | `var` = compile-time (fixed). `dynamic` = runtime (flexible, no IntelliSense) |
+| 7 | **Extension method?** | Static method in static class with `this` on first param. **Adds methods** to existing types |
+| 8 | **Sealed class?** | Cannot be inherited. Prevents unintended derivation |
+| 9 | **Partial class?** | Definition split across **multiple files**. Compiled as one class |
+| 10 | **`using` statement?** | Ensures `Dispose()` called even if exception thrown. Try/finally sugar |
 
 ---
 

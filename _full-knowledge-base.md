@@ -67,10 +67,12 @@ public class Document : IStore, ICompress
 **Same method in two interfaces?** Use explicit implementation: `ISupplier.MethodName()`.
 
 ### Static Class
+
+> 💡 **Singleton ≠ Static class:** Singleton allows **one instance with state**; static class has **no instances**.
+
 - Cannot be instantiated. All members must be `static`.
 - Is implicitly `sealed`. No instance constructors.
 - Use for stateless utility methods (e.g., `TemperatureConverter.CelsiusToFahrenheit()`).
-- **Singleton ≠ Static class:** Singleton allows one instance with state; static class has no instances.
 
 ### `virtual` / `override` / `new`
 - `virtual` → base class declares method can be overridden
@@ -89,7 +91,7 @@ obj.Show(); // override → calls B.Show() | new → calls A.Show()
 ### SOLID Principles
 
 #### S — Single Responsibility Principle (SRP)
-> A class should have one, and only one, reason to change.
+> ⚡ **A class should have one, and only one, reason to change.**
 
 **Violation:** `Customer` class doing both DB operations AND logging.
 **Fix:** Extract logging into a separate `Logger` class.
@@ -104,7 +106,7 @@ Data/        → Database access, query building
 Each layer has ONE reason to change. Database migration → only touches `Data`.
 
 #### O — Open/Closed Principle (OCP)
-> Open for extension, closed for modification.
+> ⚡ **Open for extension, closed for modification.**
 
 **Violation:** Growing `if/else` chains when new types are added.
 **Fix:** Strategy pattern — each behavior is a class implementing a common interface.
@@ -133,7 +135,7 @@ public ICopyOperationStrategy Create(string operation) => operation switch
 ```
 
 #### L — Liskov Substitution Principle (LSP)
-> Subtypes must be substitutable for their base types without breaking behavior.
+> ⚡ **Subtypes must be substitutable for their base types without breaking behavior.**
 
 **Violation:** `Enquiry : Customer` throws `NotImplementedException` on `Add()`.
 **Fix:** Split into `IDiscount` and `IDatabase` interfaces. `Enquiry` implements only `IDiscount`.
@@ -145,7 +147,7 @@ public ICopyOperationStrategy Create(string operation) => operation switch
 - No `NotImplementedException` in inherited methods
 
 #### I — Interface Segregation Principle (ISP)
-> No client should be forced to depend on methods it doesn't use.
+> ⚡ **No client should be forced to depend on methods it doesn't use.**
 
 **Bad — fat interface:**
 ```csharp
@@ -175,9 +177,9 @@ public interface IDeleteObligationsRepository
 ```
 
 #### D — Dependency Inversion Principle (DIP)
-> High-level modules should not depend on low-level modules. Both should depend on abstractions.
+> ⚡ **High-level modules should not depend on low-level modules. Both should depend on abstractions.**
 
-**DIP ≠ DI:** DIP is a design principle (depend on abstractions). DI is a technique (inject at runtime).
+> ⚠️ **DIP ≠ DI:** DIP is a design **principle** (depend on abstractions). DI is a **technique** (inject at runtime).
 
 **Flow:**
 ```
@@ -254,16 +256,18 @@ public static bool AreEqual<T>(T val1, T val2) => val1.Equals(val2);
 
 ## Interview Questions — Rapid Fire
 
-1. **What are the 4 pillars of OOP?** Encapsulation, Abstraction, Inheritance, Polymorphism.
-2. **Abstract class vs Interface — when to use each?** Abstract = shared implementation for related types. Interface = contract for unrelated types + multiple inheritance.
-3. **Can a class inherit multiple abstract classes?** No. Only one abstract class, but multiple interfaces.
-4. **Explain SOLID in one line each.** S=one reason to change, O=extend don't modify, L=subtypes are substitutable, I=small focused interfaces, D=depend on abstractions.
-5. **What is a delegate?** Type-safe function pointer. Enables passing methods as parameters.
-6. **`var` vs `dynamic`?** `var` = compile-time inference (fixed). `dynamic` = runtime resolution (flexible, no IntelliSense).
-7. **What is an extension method?** Static method in static class with `this` modifier on first param. Adds methods to existing types.
-8. **What is a sealed class?** Cannot be inherited. Used for security, preventing unintended derivation.
-9. **What is a partial class?** Class definition split across multiple files. Compiled as one class.
-10. **What is the `using` statement?** Ensures `Dispose()` is called even if exception thrown. Syntactic sugar for try/finally.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **4 pillars of OOP?** | Encapsulation, Abstraction, Inheritance, Polymorphism |
+| 2 | **Abstract class vs Interface?** | Abstract = shared impl for **related** types. Interface = contract for **unrelated** types + multiple inheritance |
+| 3 | **Multiple abstract classes?** | No. **One** abstract class, but **multiple** interfaces |
+| 4 | **SOLID in one line each?** | S=one reason to change, O=extend don't modify, L=subtypes substitutable, I=small interfaces, D=depend on abstractions |
+| 5 | **What is a delegate?** | Type-safe function pointer. Enables passing methods as parameters |
+| 6 | **`var` vs `dynamic`?** | `var` = compile-time (fixed). `dynamic` = runtime (flexible, no IntelliSense) |
+| 7 | **Extension method?** | Static method in static class with `this` on first param. **Adds methods** to existing types |
+| 8 | **Sealed class?** | Cannot be inherited. Prevents unintended derivation |
+| 9 | **Partial class?** | Definition split across **multiple files**. Compiled as one class |
+| 10 | **`using` statement?** | Ensures `Dispose()` called even if exception thrown. Try/finally sugar |
 
 ---
 
@@ -292,6 +296,9 @@ PATTERNS: Strategy (OCP) | Factory (object creation) | Repository (data abstract
 - Can be hosted in IIS or self-hosted (OWIN, console app, Windows service).
 
 ### REST Principles
+
+> ***Resource-oriented URLs + HTTP verbs + stateless + JSON. That's REST.***
+
 - **Resource-oriented:** URLs represent resources (`/api/v1/students`), not actions.
 - **Stateless:** Each request contains all info needed to process it.
 - **HTTP methods = operations:** GET (read), POST (create), PUT (replace), PATCH (partial update), DELETE (remove).
@@ -349,7 +356,7 @@ public IActionResult PatchUser(int id, [FromBody] JsonPatchDocument<UserDto> pat
 
 ### Passing Data in GET Requests
 
-GET requests should NOT have a request body (though HTTP technically allows it, most servers/proxies ignore or reject it).
+> ⚠️ **GET requests should NOT have a request body.** Most servers/proxies ignore or reject it.
 
 **Recommended approaches:**
 
@@ -389,7 +396,7 @@ public IActionResult GetData([FromHeader(Name = "X-Tenant-Id")] int tenantId) { 
 - Proxies, CDNs, and browsers may strip or ignore GET body
 - REST convention: data retrieval params go in URL
 
-**For complex search with many filters:** Use POST with a body to `/api/users/search` — this is an accepted REST exception.
+> 💡 **For complex search with many filters:** Use `POST` with a body to `/api/users/search` — this is an accepted REST exception.
 
 ### HTTP Status Codes
 
@@ -553,10 +560,10 @@ Default for uncaught exceptions: **500 Internal Server Error**.
 
 | | Entity Framework | Dapper |
 |-|-----------------|--------|
-| Type | Full ORM | Micro ORM |
-| Features | Change tracking, lazy loading, migrations | Raw SQL, manual mapping |
-| Performance | Slower | Faster (2nd fastest ORM) |
-| Use case | Complex domain models | Performance-critical queries |
+| **Type** | Full ORM | Micro ORM |
+| **Features** | Change tracking, lazy loading, migrations | Raw SQL, manual mapping |
+| **Performance** | Slower | **Faster** (2nd fastest ORM) |
+| **Use case** | Complex domain models | Performance-critical queries |
 
 ### When to Use Raw SQL vs ORM
 
@@ -613,7 +620,7 @@ public async Task BulkInsertLogs(List<LogEntry> logs)
 }
 ```
 
-**Rule of thumb:** Start with EF for everything. Switch to Dapper/raw SQL for specific queries where EF is measurably slow (profiled, not guessed).
+> 💡 **Rule of thumb:** Start with EF for everything. Switch to Dapper/raw SQL for specific queries where EF is **measurably slow** (profiled, not guessed).
 
 ---
 
@@ -680,16 +687,18 @@ var list = large.ToList();                // NOW executes — result: { 4 }
 
 ## Interview Questions — Rapid Fire
 
-1. **What is REST?** Client-server architecture using HTTP verbs on resources, stateless, returns JSON/XML.
-2. **Web API vs WCF?** Web API = lightweight HTTP/JSON. WCF = heavyweight multi-protocol SOAP.
-3. **What is content negotiation?** Server selects response format based on `Accept` header.
-4. **How to handle CORS?** Install CORS package, enable globally or per-controller with allowed origins.
-5. **FromUri vs FromBody?** Simple types → URI. Complex types → body.
-6. **What is EF?** ORM that maps C# objects to DB tables. Supports Code First, DB First, Model First.
-7. **EF vs Dapper?** EF = full ORM (change tracking, migrations). Dapper = micro ORM (raw SQL, faster).
-8. **What is OData?** Protocol for queryable REST APIs with standard CRUD operations.
-9. **API versioning approaches?** URI (`/v1/`), query string, header, media type.
-10. **Where is bearer token stored?** Client-side. Server verifies signature, doesn't store it.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is REST?** | Client-server arch using HTTP verbs on resources, stateless, returns JSON/XML |
+| 2 | **Web API vs WCF?** | Web API = lightweight HTTP/JSON. WCF = heavyweight multi-protocol SOAP |
+| 3 | **Content negotiation?** | Server selects response format based on `Accept` header |
+| 4 | **Handle CORS?** | Install CORS package, enable globally or per-controller with allowed origins |
+| 5 | **FromUri vs FromBody?** | Simple types → URI. Complex types → body |
+| 6 | **What is EF?** | ORM mapping C# objects to DB tables. Code First, DB First, Model First |
+| 7 | **EF vs Dapper?** | EF = full ORM (change tracking, migrations). Dapper = micro ORM (**raw SQL, faster**) |
+| 8 | **What is OData?** | Protocol for queryable REST APIs with standard CRUD operations |
+| 9 | **API versioning?** | URI (`/v1/`), query string, header, media type |
+| 10 | **Bearer token stored?** | **Client-side.** Server verifies signature, doesn't store it |
 
 ---
 
@@ -765,6 +774,8 @@ DI:           Singleton | Scoped | Transient
 
 ### Token Security Best Practices
 
+> ⚠️ **Never store tokens in `localStorage`** — vulnerable to XSS. Use **HTTP-only cookies** instead.
+
 | Practice | Why |
 |----------|-----|
 | Use HTTPS | Prevent token interception in transit |
@@ -778,6 +789,8 @@ DI:           Singleton | Scoped | Transient
 ---
 
 ## Web Security Threats & Prevention
+
+> ⚡ **Defense in depth:** Layer multiple protections. No single measure is sufficient.
 
 ### OWASP Top Threats
 
@@ -1282,16 +1295,18 @@ Step 10:  └──► If refresh token also expired → Logout, redirect to /lo
 
 ## Interview Questions — Rapid Fire
 
-1. **Authentication vs Authorization?** AuthN = verify identity. AuthZ = verify permissions.
-2. **How does OAuth 2.0 work?** Client gets auth code from auth server, exchanges for tokens, presents token to resource server.
-3. **What are JWT claims?** Key-value pairs in token payload (sub, name, email, roles, exp).
-4. **How to prevent SQL injection?** Parameterized queries. Never concatenate user input into SQL.
-5. **XSS vs CSRF?** XSS = inject malicious scripts. CSRF = trick user into making unintended requests.
-6. **Where to store tokens?** HTTP-only cookies (not localStorage — XSS vulnerable).
-7. **Client Credentials grant?** Server-to-server auth without user involvement. Machine-to-machine.
-8. **What is CORS?** Browser policy that blocks cross-origin requests. Server must explicitly allow origins.
-9. **What is Content Security Policy?** HTTP header that restricts resource sources, preventing XSS.
-10. **How to secure a microservice?** API Gateway auth, JWT validation, HTTPS, input validation, rate limiting.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **Authentication vs Authorization?** | AuthN = **verify identity**. AuthZ = **verify permissions** |
+| 2 | **How does OAuth 2.0 work?** | Client gets auth code → exchanges for tokens → presents token to resource server |
+| 3 | **JWT claims?** | Key-value pairs in payload (`sub`, `name`, `email`, `roles`, `exp`) |
+| 4 | **Prevent SQL injection?** | **Parameterized queries.** Never concatenate user input into SQL |
+| 5 | **XSS vs CSRF?** | XSS = inject malicious **scripts**. CSRF = trick user into **unintended requests** |
+| 6 | **Where to store tokens?** | **HTTP-only cookies** (not localStorage — XSS vulnerable) |
+| 7 | **Client Credentials grant?** | Server-to-server auth **without user involvement**. Machine-to-machine |
+| 8 | **What is CORS?** | Browser policy blocking cross-origin requests. Server must explicitly allow origins |
+| 9 | **Content Security Policy?** | HTTP header that restricts resource sources, **preventing XSS** |
+| 10 | **Secure a microservice?** | API Gateway auth, JWT validation, HTTPS, input validation, rate limiting |
 
 ---
 
@@ -1306,11 +1321,301 @@ THREATS:      SQL Injection | XSS | CSRF | Broken Auth | Data Exposure
 PREVENTION:   Parameterized queries | CSP headers | Anti-forgery tokens | HTTPS | Input validation
 HEADERS:      CSP | X-Content-Type-Options | X-Frame-Options | HSTS
 ```
+# Design Patterns — Interview Preparation
+
+---
+
+## Core Concepts
+
+### Pattern Categories
+
+| Category | Focus | Patterns |
+|----------|-------|----------|
+| **Creational** | Object creation | Singleton, Factory, Abstract Factory, Builder, Prototype |
+| **Structural** | Object composition | Adapter, Facade, Decorator, Proxy, Bridge, Composite |
+| **Behavioral** | Object interaction | Strategy, Observer, Chain of Responsibility, Command, Template Method |
+
+---
+
+## Deep Dive — Key Patterns
+
+### 1. Singleton (Creational)
+
+> ***Ensure a class has only **one instance** with a global access point.***
+
+```csharp
+public sealed class Logger
+{
+    private static Logger _instance;
+    private static readonly object _lock = new object();
+
+    private Logger() { }
+
+    public static Logger Instance
+    {
+        get
+        {
+            if (_instance == null)                 // First check (no lock)
+            {
+                lock (_lock)                       // Thread safety
+                {
+                    if (_instance == null)          // Second check (inside lock)
+                        _instance = new Logger();
+                }
+            }
+            return _instance;
+        }
+    }
+}
+```
+
+> 💡 **Why `sealed`?** Prevents nested class from inheriting and creating another instance.
+> **Double-checked locking:** First `null` check avoids lock overhead after initialization.
+**Use case:** Logging, configuration, connection pools, load balancers.
+
+---
+
+### 2. Factory / Abstract Factory (Creational)
+
+> ***Create objects without exposing creation logic. Client doesn't know concrete types.***
+
+```csharp
+// Abstract Factory
+public interface IMobilePhone
+{
+    ISmartPhone CreateSmartPhone();
+    INormalPhone CreateNormalPhone();
+}
+
+public class Nokia : IMobilePhone
+{
+    public ISmartPhone CreateSmartPhone() => new NokiaLumia();
+    public INormalPhone CreateNormalPhone() => new Nokia1000();
+}
+
+public class Samsung : IMobilePhone
+{
+    public ISmartPhone CreateSmartPhone() => new SamsungGalaxy();
+    public INormalPhone CreateNormalPhone() => new SamsungGuru();
+}
+
+// Usage — client doesn't know concrete types
+IMobilePhone factory = new Nokia();
+ISmartPhone phone = factory.CreateSmartPhone();
+```
+
+**Solves:** Scattered `new` keywords, client coupling to concrete classes.
+**Use case:** Cross-platform UI, database providers, payment processors.
+
+---
+
+### 3. Strategy (Behavioral)
+
+> ***Define a family of algorithms, encapsulate each, make them interchangeable. Eliminates `if/else` chains.***
+
+```csharp
+// This is the OCP example from SOLID
+public interface ICopyOperationStrategy
+{
+    Task CopyVersion(JObject payload);
+}
+
+public class AmendContract : ICopyOperationStrategy { /* amend logic */ }
+public class CopyContract : ICopyOperationStrategy  { /* copy logic */ }
+public class ModifyContract : ICopyOperationStrategy { /* modify logic */ }
+
+// Factory resolves the right strategy at runtime
+ICopyOperationStrategy strategy = factory.Create(operationType);
+await strategy.CopyVersion(payload);
+```
+
+**Eliminates:** Long `if/else` or `switch` chains.
+**Use case:** Payment methods, validation rules, sorting algorithms, contract operations.
+
+---
+
+### 4. Observer (Behavioral)
+
+> ***One-to-many dependency. When subject changes, all observers are notified automatically.***
+
+```csharp
+// Subject
+public class NewsPublisher
+{
+    private List<ISubscriber> _subscribers = new();
+    public void Subscribe(ISubscriber s) => _subscribers.Add(s);
+    public void Unsubscribe(ISubscriber s) => _subscribers.Remove(s);
+    public void Publish(string news)
+    {
+        foreach (var s in _subscribers) s.Notify(news);
+    }
+}
+
+// Observers
+public interface ISubscriber { void Notify(string message); }
+public class EmailSubscriber : ISubscriber
+{
+    public void Notify(string message) => Console.WriteLine($"Email: {message}");
+}
+```
+
+**Use case:** Event systems, UI updates, pub/sub messaging, real-time notifications.
+
+---
+
+### 5. Chain of Responsibility (Behavioral)
+
+> ***Pass request along a chain. Each handler decides to process or pass to next.***
+
+```csharp
+public abstract class LeaveHandler
+{
+    protected LeaveHandler _next;
+    public void SetNext(LeaveHandler next) => _next = next;
+    public abstract void Handle(LeaveRequest request);
+}
+
+public class TeamLead : LeaveHandler
+{
+    public override void Handle(LeaveRequest req)
+    {
+        if (req.Days <= 2) Console.WriteLine("Approved by Team Lead");
+        else _next?.Handle(req);
+    }
+}
+
+public class Manager : LeaveHandler { /* approves <= 5 days */ }
+public class Director : LeaveHandler { /* approves > 5 days */ }
+
+// Wire the chain
+teamLead.SetNext(manager);
+manager.SetNext(director);
+teamLead.Handle(new LeaveRequest { Days = 5 });
+```
+
+**Use case:** Approval workflows, middleware pipelines, request validation.
+
+---
+
+### 6. Facade (Structural)
+
+> ***Simplified interface to a complex subsystem. One method orchestrates multiple services.***
+
+```csharp
+public class OrderFacade
+{
+    private InventoryService _inventory = new();
+    private PaymentService _payment = new();
+    private ShippingService _shipping = new();
+
+    public void PlaceOrder(Order order)
+    {
+        _inventory.Reserve(order);
+        _payment.Charge(order);
+        _shipping.Ship(order);
+    }
+}
+// Client calls one method instead of coordinating 3 subsystems
+```
+
+**Use case:** API aggregation, complex library wrappers, service orchestration.
+
+---
+
+### 7. Repository + Unit of Work (Structural/Enterprise)
+
+> ***Abstract data access. UoW ensures multiple repositories share one DB context per transaction.***
+
+```csharp
+// Generic Repository
+public interface IRepository<T>
+{
+    Task<T> GetById(int id);
+    Task Add(T entity);
+    Task Delete(T entity);
+}
+
+// Unit of Work — shared context
+public interface IUnitOfWork : IDisposable
+{
+    IRepository<Order> Orders { get; }
+    IRepository<Product> Products { get; }
+    Task<int> SaveChanges();
+}
+```
+
+**Why generic repository?** Reduces redundant CRUD code across entity types. UoW ensures atomic transactions.
+
+---
+
+## Microservice Patterns
+
+### CQRS (Command Query Responsibility Segregation)
+- Separates read and write models.
+- Write model: RDBMS (normalized, consistent).
+- Read model: NoSQL/denormalized (fast queries).
+- **Sync via:** Event-driven architecture (Kafka pub/sub).
+
+### Saga Pattern
+- Maintains data consistency across microservices without distributed transactions.
+- Each step has a **compensating transaction** to rollback on failure.
+- **Orchestrator Saga:** Central coordinator (e.g., Azure Durable Function) manages the sequence.
+
+### API Gateway
+- Single entry point for all clients.
+- Handles: load balancing, auth, rate limiting, protocol translation.
+- Clients → Gateway → Microservices.
+
+---
+
+## Tradeoffs & Pitfalls
+
+| Pattern | Pitfall |
+|---------|---------|
+| Singleton | Hides dependencies, makes testing hard. Prefer DI-managed singletons. |
+| Factory | Factory switch statement violates OCP. Consider dictionary-based registry. |
+| Observer | Memory leaks if observers not unsubscribed. |
+| Strategy | Overkill for simple 2-option logic. |
+| Repository | Generic repository can become a leaky abstraction over EF. |
+| CQRS | Eventual consistency is complex. Don't use for simple CRUD apps. |
+| Saga | Compensating transactions are hard to get right. Debug complexity increases. |
+
+---
+
+## Interview Questions — Rapid Fire
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is Singleton?** | **One instance** per app. `sealed` + double-checked locking + private constructor |
+| 2 | **Factory vs Abstract Factory?** | Factory = one type. Abstract Factory = **families** of related objects |
+| 3 | **When Strategy?** | Multiple algorithms selectable at runtime. **Replaces if/else chains** |
+| 4 | **What is CQRS?** | Separate read/write models. Read = optimized queries. Write = business rules |
+| 5 | **What is Saga?** | Cross-service transactions. Each step has **compensating action** for rollback |
+| 6 | **Repository pattern?** | Abstracts data access behind interface. Enables **swapping DB** implementations |
+| 7 | **Observer vs Pub/Sub?** | Observer = direct subscription. Pub/Sub = **decoupled** via message broker |
+| 8 | **What is Facade?** | Simplified interface to complex subsystem. **One method** orchestrates many services |
+| 9 | **Chain of Responsibility?** | Middleware pipelines, approval workflows, request validation chains |
+| 10 | **DI types?** | **Constructor** (most common), Property, Method injection |
+
+---
+
+## Quick Reference
+
+```
+CREATIONAL:   Singleton (one instance) | Factory (create without knowing type) | Builder (step-by-step)
+STRUCTURAL:   Facade (simplify) | Adapter (convert interface) | Decorator (wrap + extend) | Repository (abstract data)
+BEHAVIORAL:   Strategy (swap algorithms) | Observer (notify many) | Chain (pass along) | Command (encapsulate action)
+MICRO:        CQRS (read/write split) | Saga (distributed rollback) | API Gateway (single entry)
+DI:           Constructor | Property | Method
+DI LIFETIME:  Singleton | Scoped | Transient
+```
 # Performance Optimization — Interview Preparation
 
 ---
 
 ## Application Performance
+
+> ***Profile first, optimize second. Never guess where the bottleneck is.***
 
 | Area | Techniques |
 |------|-----------|
@@ -1368,6 +1673,8 @@ HEADERS:      CSP | X-Content-Type-Options | X-Frame-Options | HSTS
 
 ## Downtime Handling (STAR format)
 
+> ⚡ **6-step framework:** Assess → Communicate → Isolate → Fix → Document → Prevent
+
 1. **Immediate Assessment** — identify root cause quickly
 2. **Communication** — notify team members and stakeholders
 3. **Isolation** — isolate affected components
@@ -1391,6 +1698,8 @@ INCIDENT:  Assess → Communicate → Isolate → Fix → Document → Prevent
 
 ## Senior-Level Backend Concepts Checklist
 
+> 💡 **These topics frequently appear in senior/lead interviews. Know at least 2-3 deep examples per category.**
+
 ### Distributed Systems
 - CAP theorem, eventual consistency, strong consistency, partition tolerance
 
@@ -1408,7 +1717,1566 @@ INCIDENT:  Assess → Communicate → Isolate → Fix → Document → Prevent
 
 ### Performance
 - Redis caching, rate limiting, query optimization, batching, async processing
-# JavaScript — Interview Preparation
+# Node.js Security & Authentication — Interview Preparation
+
+---
+
+## Core Concepts
+
+### Authentication vs Authorization
+
+| | Authentication | Authorization |
+|-|---------------|---------------|
+| Question | Who are you? | What can you access? |
+| Mechanism | Credentials, tokens, sessions | Roles, permissions, policies |
+| Node.js tools | Passport.js, jsonwebtoken, bcrypt | Custom middleware, CASL, accesscontrol |
+
+---
+
+## Deep Dive
+
+### Password Hashing with bcrypt
+
+> ⚠️ **Never store plain-text passwords.** Use bcrypt with a salt rounds factor.
+
+```javascript
+const bcrypt = require('bcrypt');
+
+// Hash password (registration)
+async function hashPassword(plainText) {
+  const saltRounds = 10;
+  return await bcrypt.hash(plainText, saltRounds);
+}
+
+// Verify password (login)
+async function verifyPassword(plainText, hash) {
+  return await bcrypt.compare(plainText, hash);
+}
+
+// Usage
+const hash = await hashPassword('myPassword123');
+const isValid = await verifyPassword('myPassword123', hash); // true
+```
+
+> 💡 **Salt rounds:** **10** is standard. Each increment **doubles** computation time. **12+** for high-security apps.
+
+### JWT Authentication with jsonwebtoken
+
+> ***Access token: short-lived (**15m**). Refresh token: long-lived (**7d**). Never hardcode secrets.***
+
+```javascript
+const jwt = require('jsonwebtoken');
+
+const SECRET = process.env.JWT_SECRET; // ⚠️ Never hardcode
+
+// Generate tokens
+function generateAccessToken(user) {
+  return jwt.sign(
+    { userId: user.id, email: user.email, role: user.role },
+    SECRET,
+    { expiresIn: '15m' }
+  );
+}
+
+function generateRefreshToken(user) {
+  return jwt.sign(
+    { userId: user.id },
+    process.env.REFRESH_SECRET,
+    { expiresIn: '7d' }
+  );
+}
+
+// Verify token middleware
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+
+  if (!token) return res.status(401).json({ message: 'Token required' });
+
+  jwt.verify(token, SECRET, (err, decoded) => {
+    if (err) return res.status(403).json({ message: 'Invalid token' });
+    req.user = decoded;
+    next();
+  });
+}
+```
+
+### Login & Refresh Flow
+
+```javascript
+const express = require('express');
+const router = express.Router();
+
+// POST /auth/login
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+
+  const valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  // Store refresh token in DB or Redis
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  res.json({ accessToken, refreshToken });
+});
+
+// POST /auth/refresh
+router.post('/refresh', async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return res.status(401).json({ message: 'Token required' });
+
+  const user = await User.findOne({ refreshToken });
+  if (!user) return res.status(403).json({ message: 'Invalid refresh token' });
+
+  jwt.verify(refreshToken, process.env.REFRESH_SECRET, (err, decoded) => {
+    if (err) return res.status(403).json({ message: 'Token expired' });
+
+    const newAccessToken = generateAccessToken(user);
+    res.json({ accessToken: newAccessToken });
+  });
+});
+```
+
+### Passport.js Strategies
+
+> ***Passport = authentication middleware for Express with **500+** pluggable strategies.***
+
+**Local Strategy** (username/password):
+```javascript
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+
+passport.use(new LocalStrategy(
+  { usernameField: 'email' },
+  async (email, password, done) => {
+    try {
+      const user = await User.findOne({ email });
+      if (!user) return done(null, false, { message: 'Invalid credentials' });
+
+      const valid = await bcrypt.compare(password, user.passwordHash);
+      if (!valid) return done(null, false, { message: 'Invalid credentials' });
+
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
+  }
+));
+
+// Route
+router.post('/login', passport.authenticate('local', { session: false }),
+  (req, res) => {
+    const token = generateAccessToken(req.user);
+    res.json({ token });
+  }
+);
+```
+
+**JWT Strategy:**
+```javascript
+const JwtStrategy = require('passport-jwt').Strategy;
+const ExtractJwt = require('passport-jwt').ExtractJwt;
+
+passport.use(new JwtStrategy(
+  {
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey: process.env.JWT_SECRET
+  },
+  async (payload, done) => {
+    try {
+      const user = await User.findById(payload.userId);
+      if (!user) return done(null, false);
+      return done(null, user);
+    } catch (err) {
+      return done(err, false);
+    }
+  }
+));
+
+// Protected route
+router.get('/profile',
+  passport.authenticate('jwt', { session: false }),
+  (req, res) => res.json(req.user)
+);
+```
+
+**Google OAuth Strategy:**
+```javascript
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+
+passport.use(new GoogleStrategy(
+  {
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: '/auth/google/callback'
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    let user = await User.findOne({ googleId: profile.id });
+    if (!user) {
+      user = await User.create({
+        googleId: profile.id,
+        email: profile.emails[0].value,
+        name: profile.displayName
+      });
+    }
+    return done(null, user);
+  }
+));
+
+router.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+router.get('/auth/google/callback',
+  passport.authenticate('google', { session: false }),
+  (req, res) => {
+    const token = generateAccessToken(req.user);
+    res.redirect(`/dashboard?token=${token}`);
+  }
+);
+```
+
+### Role-Based Authorization Middleware
+
+```javascript
+function authorize(...roles) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    next();
+  };
+}
+
+// Usage
+router.get('/admin/dashboard', authenticateToken, authorize('admin'), (req, res) => {
+  res.json({ message: 'Admin dashboard' });
+});
+
+router.get('/reports', authenticateToken, authorize('admin', 'manager'), (req, res) => {
+  res.json({ data: 'Reports' });
+});
+```
+
+### Session-Based Authentication
+
+```javascript
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // ✅ HTTPS only in prod
+    httpOnly: true,    // ✅ Prevents JavaScript access (XSS protection)
+    maxAge: 24 * 60 * 60 * 1000, // ✅ 24 hours
+    sameSite: 'strict' // ✅ CSRF protection
+  }
+}));
+```
+
+| | JWT (Stateless) | Sessions (Stateful) |
+|-|-----------------|---------------------|
+| Storage | Client-side (token) | Server-side (session store) |
+| Scalability | Better (no server state) | Needs shared store (Redis) |
+| Revocation | Hard (until expiry) | Easy (delete session) |
+| Use case | APIs, microservices, mobile | Traditional web apps, SSR |
+
+---
+
+## Security Best Practices
+
+> ⚡ **Defense in depth:** Layer multiple protections — headers, CORS, rate limiting, input validation, sanitization.
+
+### Helmet.js — Security Headers
+
+```javascript
+const helmet = require('helmet');
+app.use(helmet());
+
+// Sets these headers automatically:
+// Content-Security-Policy, X-Content-Type-Options: nosniff,
+// X-Frame-Options: DENY, Strict-Transport-Security, etc.
+```
+
+### CORS Configuration
+
+```javascript
+const cors = require('cors');
+
+app.use(cors({
+  origin: ['https://myapp.com', 'https://admin.myapp.com'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true, // Allow cookies
+  maxAge: 86400      // Preflight cache 24h
+}));
+```
+
+### Rate Limiting
+
+```javascript
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,                  // 100 requests per window per IP
+  message: { error: 'Too many requests, try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use('/api/', limiter);
+
+// ⚠️ Stricter limit for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,                     // Only 5 login attempts per 15min
+  message: { error: 'Too many login attempts' }
+});
+app.use('/auth/login', authLimiter);
+```
+
+### Input Validation with Joi
+
+```javascript
+const Joi = require('joi');
+
+const registerSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).max(128).required(),
+  name: Joi.string().min(2).max(100).required()
+});
+
+function validate(schema) {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body, { abortEarly: false });
+    if (error) {
+      const messages = error.details.map(d => d.message);
+      return res.status(400).json({ errors: messages });
+    }
+    next();
+  };
+}
+
+router.post('/register', validate(registerSchema), async (req, res) => {
+  // req.body is validated
+});
+```
+
+### OWASP Top Threats — Node.js Context
+
+| Threat | Prevention |
+|--------|-----------|
+| **SQL/NoSQL Injection** | Parameterized queries, Mongoose sanitization, `express-mongo-sanitize` |
+| **XSS** | `helmet`, output encoding, CSP headers, `xss-clean` |
+| **CSRF** | `csurf` middleware, SameSite cookies |
+| **Broken Auth** | bcrypt, rate limiting, account lockout |
+| **Sensitive Data Exposure** | HTTPS, `helmet`, environment variables, never log secrets |
+| **Prototype Pollution** | Validate input, `Object.freeze()`, use `Map` over plain objects |
+
+```javascript
+// Prevent NoSQL injection
+const mongoSanitize = require('express-mongo-sanitize');
+app.use(mongoSanitize()); // Strips $ and . from req.body/query/params
+```
+
+---
+
+## Interview Questions — Rapid Fire
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **How to hash passwords?** | `bcrypt` with salt rounds (**10+**). Never use MD5/SHA for passwords |
+| 2 | **JWT vs Sessions?** | JWT = stateless, scalable, **hard to revoke**. Sessions = stateful, **easy to revoke**, needs shared store |
+| 3 | **What is Passport.js?** | Auth middleware with **500+** pluggable strategies (Local, JWT, OAuth, Google) |
+| 4 | **Prevent brute force?** | `express-rate-limit`, account lockout, CAPTCHA |
+| 5 | **Where to store JWT?** | **HttpOnly cookies** (not localStorage). Use `Secure` + `SameSite` flags |
+| 6 | **What is Helmet.js?** | Middleware that sets security headers (CSP, HSTS, X-Frame-Options) |
+| 7 | **How to validate input?** | `Joi` or `express-validator`. Validate at **route level** before business logic |
+| 8 | **Prevent NoSQL injection?** | `express-mongo-sanitize` strips `$` operators from user input |
+| 9 | **What is CORS?** | Browser policy blocking cross-origin requests. Configure `cors` with allowed origins |
+| 10 | **Refresh tokens?** | Store in **DB/Redis**, validate on refresh endpoint, rotate on use, revoke on logout |
+
+---
+
+## Quick Reference
+
+```
+AUTH:         bcrypt (hash) | jsonwebtoken (JWT) | passport (strategies)
+PASSPORT:     Local | JWT | Google OAuth | Facebook | GitHub
+JWT FLOW:     Login → sign token → client stores → sends Bearer header → verify middleware
+SESSION:      express-session + connect-mongo/connect-redis | httpOnly cookies
+SECURITY:     helmet (headers) | cors (origins) | express-rate-limit | express-mongo-sanitize
+VALIDATION:   joi | express-validator | validate at route level
+HEADERS:      CSP | X-Content-Type-Options | X-Frame-Options | HSTS (all via helmet)
+STORAGE:      HttpOnly cookie (safe) | localStorage (XSS risk) | sessionStorage (tab only)
+```
+# Node.js & Express.js APIs — Interview Preparation
+
+---
+
+## Core Concepts
+
+### Express.js Fundamentals
+
+> ***Express = minimal, unopinionated web framework for Node.js. Middleware-driven pipeline architecture.***
+
+```javascript
+const express = require('express');
+const app = express();
+
+// Built-in middleware
+app.use(express.json());              // Parse JSON bodies
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(express.static('public'));     // Serve static files
+
+app.listen(3000, () => console.log('Server running on port 3000'));
+```
+
+### HTTP Methods & REST Structure
+
+```javascript
+const router = express.Router();
+
+// CRUD mapping
+router.get('/users',        getAllUsers);     // Read all
+router.get('/users/:id',    getUserById);     // Read one
+router.post('/users',       createUser);      // Create
+router.put('/users/:id',    updateUser);      // Full update
+router.patch('/users/:id',  patchUser);       // Partial update
+router.delete('/users/:id', deleteUser);      // Delete
+
+app.use('/api', router);
+```
+
+### HTTP Status Codes
+
+| Code | Meaning | When to Use |
+|------|---------|-------------|
+| 200 | OK | Successful GET, PUT, PATCH |
+| 201 | Created | Successful POST (resource created) |
+| 204 | No Content | Successful DELETE |
+| 400 | Bad Request | Validation errors, malformed body |
+| 401 | Unauthorized | Missing or invalid authentication |
+| 403 | Forbidden | Authenticated but no permission |
+| 404 | Not Found | Resource doesn't exist |
+| 409 | Conflict | Duplicate resource, version conflict |
+| 422 | Unprocessable Entity | Valid syntax but semantic errors |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Unhandled server errors |
+
+---
+
+## Deep Dive
+
+### Middleware — The Express Pipeline
+
+> ***Middleware = functions that execute in sequence. Each has `(req, res, next)`. Must call `next()` or send response.***
+
+```javascript
+// Custom logging middleware
+function logger(req, res, next) {
+  console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
+  next(); // Pass control to next middleware
+}
+
+// Timing middleware
+function timing(req, res, next) {
+  const start = Date.now();
+  res.on('finish', () => {
+    console.log(`${req.method} ${req.url} took ${Date.now() - start}ms`);
+  });
+  next();
+}
+
+app.use(logger);
+app.use(timing);
+```
+
+**Middleware execution order:**
+```
+Request → logger → timing → cors → helmet → auth → route handler → error handler → Response
+```
+
+| # | Type | Example |
+|---|------|--------|
+| 1 | **Application-level** | `app.use()`, `app.get()` |
+| 2 | **Router-level** | `router.use()`, `router.get()` |
+| 3 | **Error-handling** | `(err, req, res, next)` — **4 parameters** |
+| 4 | **Built-in** | `express.json()`, `express.static()` |
+| 5 | **Third-party** | `cors`, `helmet`, `morgan` |
+
+### Route Handlers — Controller Pattern
+
+```javascript
+// controllers/userController.js
+const User = require('../models/User');
+
+exports.getAllUsers = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, sort = '-createdAt' } = req.query;
+
+    const users = await User.find()
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .select('-passwordHash');
+
+    const total = await User.countDocuments();
+
+    res.json({
+      data: users,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getUserById = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).select('-passwordHash');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.createUser = async (req, res, next) => {
+  try {
+    const user = await User.create(req.body);
+    res.status(201).json(user);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: 'Email already exists' });
+    }
+    next(err);
+  }
+};
+
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+```
+
+### Error Handling
+
+> ⚡ **Pattern:** `AppError` class + `asyncHandler` wrapper + global error middleware. Eliminates try/catch in every handler.
+
+```javascript
+// Custom error class
+class AppError extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = true;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+// Async wrapper — eliminates try/catch in every handler
+function asyncHandler(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+// Usage with asyncHandler
+router.get('/users/:id', asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) throw new AppError('User not found', 404);
+  res.json(user);
+}));
+
+// Global error handler (⚠️ must have 4 parameters)
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  const message = err.isOperational ? err.message : 'Internal Server Error';
+
+  if (!err.isOperational) {
+    console.error('UNEXPECTED ERROR:', err);
+  }
+
+  res.status(statusCode).json({
+    status: 'error',
+    message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+```
+
+> ⚠️ **Unhandled rejection / uncaught exception:**
+```javascript
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+  // Graceful shutdown
+  server.close(() => process.exit(1));
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1); // ⚠️ Must exit — process is in undefined state
+});
+```
+
+### Project Structure
+
+```
+src/
+├── config/
+│   └── db.js           # Database connection
+├── controllers/        # Route handlers (business logic)
+├── middleware/          # Auth, validation, error handling
+├── models/             # Mongoose/Prisma schemas
+├── routes/             # Route definitions
+│   ├── index.js
+│   └── userRoutes.js
+├── services/           # Business logic (reusable)
+├── utils/              # Helpers (AppError, asyncHandler)
+├── validators/         # Joi/Zod schemas
+├── app.js              # Express setup
+└── server.js           # Entry point
+```
+
+### Environment Variables & Configuration
+
+> ⚠️ **Never commit `.env` files.** Use `dotenv` for local dev, environment variables in production.
+
+```javascript
+// config/index.js
+require('dotenv').config();
+
+module.exports = {
+  port: process.env.PORT || 3000,
+  mongoUri: process.env.MONGO_URI,
+  jwtSecret: process.env.JWT_SECRET,
+  nodeEnv: process.env.NODE_ENV || 'development'
+};
+
+// .env (never commit)
+PORT=3000
+MONGO_URI=mongodb://localhost:27017/myapp
+JWT_SECRET=super-secret-key
+NODE_ENV=development
+```
+
+### Database Connection (Mongoose)
+
+```javascript
+// config/db.js
+const mongoose = require('mongoose');
+
+async function connectDB() {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      maxPoolSize: 10    // ✅ Limit concurrent connections
+    });
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  }
+}
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('MongoDB disconnected');
+});
+
+module.exports = connectDB;
+```
+
+### Logging with Winston & Morgan
+
+```javascript
+// Winston — Application logging
+const winston = require('winston');
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' })
+  ]
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple()
+  }));
+}
+
+module.exports = logger;
+
+// Morgan — HTTP request logging
+const morgan = require('morgan');
+app.use(morgan('dev'));  // :method :url :status :response-time ms
+```
+
+### Process Manager — PM2
+
+> ***PM2 = process manager for production Node.js. Clustering, auto-restart, zero-downtime reload, log management.***
+
+```bash
+# Start with PM2
+pm2 start server.js --name "my-api"
+
+# Cluster mode (utilize all CPU cores)
+pm2 start server.js -i max
+
+# Ecosystem file
+# ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'my-api',
+    script: './src/server.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: { NODE_ENV: 'development' },
+    env_production: { NODE_ENV: 'production' }
+  }]
+};
+
+# Commands
+pm2 list            # List processes
+pm2 logs            # View logs
+pm2 restart all     # Restart all
+pm2 reload all      # Zero-downtime reload
+pm2 monit           # Monitor CPU/Memory
+```
+
+### Graceful Shutdown
+
+> 💡 **Why?** Finish in-flight requests, close DB connections, prevent data corruption before process exit.
+
+```javascript
+const server = app.listen(3000);
+
+function gracefulShutdown(signal) {
+  console.log(`${signal} received. Shutting down gracefully...`);
+
+  server.close(async () => {
+    console.log('HTTP server closed');
+    await mongoose.connection.close();
+    console.log('MongoDB connection closed');
+    process.exit(0);
+  });
+
+  // ⚠️ Force shutdown after 10s
+  setTimeout(() => {
+    console.error('Forced shutdown');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+```
+
+---
+
+## Interview Questions — Rapid Fire
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is middleware?** | Functions with `(req, res, next)` in pipeline order. Must call `next()` or send response |
+| 2 | **Async errors in Express?** | `asyncHandler` wrapper catches rejections → `next(err)`. Express **5** does this natively |
+| 3 | **`app.use()` vs `app.get()`?** | `use()` = all methods + path prefixes. `get()` = only GET on exact path |
+| 4 | **`express.Router()`?** | Mini-application for modular routes. Groups related routes with own middleware |
+| 5 | **PUT vs PATCH?** | PUT = **replace entire** resource. PATCH = **partial** update. Both idempotent |
+| 6 | **`express.json()`?** | Built-in middleware that parses JSON bodies → populates `req.body` |
+| 7 | **Forget `next()`?** | Request **hangs** — never reaches next middleware or route handler |
+| 8 | **Handle 404?** | Catch-all middleware after all routes: `app.use((req, res) => res.status(404)...)` |
+| 9 | **What is PM2?** | Process manager: clustering, auto-restart, **zero-downtime reload**, log management |
+| 10 | **Graceful shutdown?** | Finish in-flight requests, close DB, prevent data corruption before `exit()` |
+
+---
+
+## Quick Reference
+
+```
+EXPRESS:      express() | app.use() | app.listen() | express.Router()
+MIDDLEWARE:   express.json() | cors | helmet | morgan | custom (req, res, next)
+HTTP:         GET (read) | POST (create) | PUT (replace) | PATCH (update) | DELETE (remove)
+STATUS:       200 OK | 201 Created | 204 No Content | 400 Bad | 401 Unauth | 403 Forbidden | 404 Not Found | 500 Error
+ERRORS:       AppError class | asyncHandler wrapper | global (err, req, res, next) | process.on('unhandledRejection')
+STRUCTURE:    controllers/ | routes/ | middleware/ | models/ | services/ | validators/ | config/
+CONFIG:       dotenv (.env) | never commit secrets | process.env.VAR_NAME
+LOGGING:      winston (app logs) | morgan (HTTP logs) | PM2 logs
+PM2:          pm2 start -i max | pm2 reload all | pm2 monit | ecosystem.config.js
+SHUTDOWN:     SIGTERM/SIGINT → close server → close DB → exit(0) | timeout → exit(1)
+```
+# Node.js Design Patterns — Interview Preparation
+
+---
+
+## Core Concepts
+
+### Why Design Patterns in Node.js?
+
+> ***Node.js has unique patterns driven by its event-driven, non-blocking nature. Some classical patterns map directly; others are Node-specific.***
+
+| Pattern | Node.js Twist |
+|---------|---------------|
+| **Singleton** | Module caching = natural singleton |
+| **Observer** | Built into core via `EventEmitter` |
+| **Middleware** | Defining pattern of Express.js |
+| **Module** | Every file is a module (`module.exports`) |
+
+---
+
+## Deep Dive
+
+### Module Pattern (Node.js Native)
+
+> ***Every file in Node.js is a module. `module.exports` / `require` provides encapsulation by default.***
+
+```javascript
+// counter.js — Private state via closure
+let count = 0; // Private — not exported
+
+function increment() {
+  return ++count;
+}
+
+function getCount() {
+  return count;
+}
+
+module.exports = { increment, getCount };
+
+// app.js
+const counter = require('./counter');
+counter.increment();   // 1
+counter.increment();   // 2
+counter.getCount();    // 2
+// counter.count → undefined (private)
+```
+
+**Revealing Module Pattern:**
+```javascript
+const UserService = (() => {
+  const users = new Map();
+
+  function addUser(id, data) {
+    users.set(id, data);
+  }
+
+  function getUser(id) {
+    return users.get(id);
+  }
+
+  function getAllUsers() {
+    return [...users.values()];
+  }
+
+  return { addUser, getUser, getAllUsers };
+})();
+
+module.exports = UserService;
+```
+
+### Singleton Pattern (Module Caching)
+
+> ***`require()` caches modules after first load. Same instance returned everywhere — a natural Singleton.***
+
+> ⚠️ **Gotcha:** Module caching is **per-file-path**. Different paths to same file = different instances.
+
+```javascript
+// database.js
+const mongoose = require('mongoose');
+
+class Database {
+  constructor() {
+    this.connection = null;
+  }
+
+  async connect(uri) {
+    if (this.connection) return this.connection;
+    this.connection = await mongoose.connect(uri, { maxPoolSize: 10 });
+    console.log('Database connected');
+    return this.connection;
+  }
+
+  getConnection() {
+    if (!this.connection) throw new Error('Database not connected');
+    return this.connection;
+  }
+}
+
+// Singleton via module caching — ✅ same instance everywhere
+module.exports = new Database();
+
+// userService.js
+const db = require('./database'); // ✅ Same instance
+```
+
+### Factory Pattern
+
+> ***Create objects without exposing creation logic. Swap implementations (loggers, payment providers) without changing consumers.***
+
+```javascript
+// loggerFactory.js
+class ConsoleLogger {
+  log(message) { console.log(`[CONSOLE] ${message}`); }
+  error(message) { console.error(`[CONSOLE ERROR] ${message}`); }
+}
+
+class FileLogger {
+  constructor() {
+    this.fs = require('fs');
+  }
+  log(message) {
+    this.fs.appendFileSync('app.log', `[LOG] ${message}\n`);
+  }
+  error(message) {
+    this.fs.appendFileSync('error.log', `[ERROR] ${message}\n`);
+  }
+}
+
+class CloudLogger {
+  log(message) { /* Send to CloudWatch/Datadog */ }
+  error(message) { /* Send to Sentry */ }
+}
+
+function createLogger(type) {
+  switch (type) {
+    case 'console': return new ConsoleLogger();
+    case 'file':    return new FileLogger();
+    case 'cloud':   return new CloudLogger();
+    default:        return new ConsoleLogger();
+  }
+}
+
+module.exports = createLogger;
+
+// Usage
+const createLogger = require('./loggerFactory');
+const logger = createLogger(process.env.NODE_ENV === 'production' ? 'cloud' : 'console');
+logger.log('App started');
+```
+
+### Strategy Pattern
+
+> ***Define a family of algorithms and make them interchangeable at runtime.***
+
+```javascript
+// Payment strategies
+class StripePayment {
+  async process(amount, currency) {
+    console.log(`Processing $${amount} via Stripe`);
+    // Stripe API call
+    return { provider: 'stripe', amount, status: 'success' };
+  }
+}
+
+class PayPalPayment {
+  async process(amount, currency) {
+    console.log(`Processing $${amount} via PayPal`);
+    // PayPal API call
+    return { provider: 'paypal', amount, status: 'success' };
+  }
+}
+
+class CryptoPayment {
+  async process(amount, currency) {
+    console.log(`Processing $${amount} via Crypto`);
+    return { provider: 'crypto', amount, status: 'success' };
+  }
+}
+
+// Context
+class PaymentProcessor {
+  constructor(strategy) {
+    this.strategy = strategy;
+  }
+
+  setStrategy(strategy) {
+    this.strategy = strategy;
+  }
+
+  async pay(amount, currency = 'USD') {
+    return this.strategy.process(amount, currency);
+  }
+}
+
+// Usage
+const processor = new PaymentProcessor(new StripePayment());
+await processor.pay(99.99);
+
+processor.setStrategy(new PayPalPayment());
+await processor.pay(49.99);
+```
+
+### Observer Pattern (EventEmitter)
+
+> ***Node.js has Observer built into core via `EventEmitter`. Key methods: `on()`, `once()`, `emit()`, `removeListener()`***
+
+```javascript
+const EventEmitter = require('events');
+
+class OrderSystem extends EventEmitter {
+  placeOrder(order) {
+    console.log(`Order placed: ${order.id}`);
+    this.emit('orderPlaced', order);
+  }
+
+  cancelOrder(orderId) {
+    console.log(`Order cancelled: ${orderId}`);
+    this.emit('orderCancelled', orderId);
+  }
+}
+
+const orderSystem = new OrderSystem();
+
+// Subscribe — multiple listeners
+orderSystem.on('orderPlaced', (order) => {
+  console.log(`[Email] Confirmation sent for order ${order.id}`);
+});
+
+orderSystem.on('orderPlaced', (order) => {
+  console.log(`[Inventory] Stock reduced for order ${order.id}`);
+});
+
+orderSystem.on('orderPlaced', (order) => {
+  console.log(`[Analytics] Order tracked: $${order.total}`);
+});
+
+orderSystem.on('orderCancelled', (orderId) => {
+  console.log(`[Inventory] Stock restored for order ${orderId}`);
+});
+
+// Trigger
+orderSystem.placeOrder({ id: 'ORD-001', total: 99.99 });
+// Output:
+// Order placed: ORD-001
+// [Email] Confirmation sent for order ORD-001
+// [Inventory] Stock reduced for order ORD-001
+// [Analytics] Order tracked: $99.99
+```
+
+> 💡 **Key methods:** `on()`, `once()`, `emit()`, `removeListener()`, `listenerCount()`
+
+### Pub/Sub Pattern
+
+> ***Decoupled communication — publishers don't know about subscribers.***
+
+```javascript
+// pubsub.js — Simple in-process Pub/Sub
+class PubSub {
+  constructor() {
+    this.subscribers = {};
+  }
+
+  subscribe(event, callback) {
+    if (!this.subscribers[event]) {
+      this.subscribers[event] = [];
+    }
+    this.subscribers[event].push(callback);
+
+    // Return unsubscribe function
+    return () => {
+      this.subscribers[event] = this.subscribers[event].filter(cb => cb !== callback);
+    };
+  }
+
+  publish(event, data) {
+    if (!this.subscribers[event]) return;
+    this.subscribers[event].forEach(callback => callback(data));
+  }
+}
+
+const pubsub = new PubSub();
+
+// Service A subscribes
+const unsub = pubsub.subscribe('user:created', (user) => {
+  console.log(`Send welcome email to ${user.email}`);
+});
+
+// Service B publishes (doesn't know about Service A)
+pubsub.publish('user:created', { email: 'john@example.com' });
+
+unsub(); // Cleanup
+```
+
+**Observer vs Pub/Sub:**
+| | Observer (EventEmitter) | Pub/Sub |
+|-|------------------------|---------|
+| **Coupling** | Subject knows observers exist | **Fully decoupled** |
+| **Communication** | Direct (subject → observers) | Through message broker |
+| **Use case** | In-process events | Cross-service / microservices |
+
+### Middleware Pattern
+
+> ***The defining pattern of Express.js — chain of responsibility with `next()`.***
+
+```javascript
+// Generic middleware pipeline (not Express-specific)
+class Pipeline {
+  constructor() {
+    this.middlewares = [];
+  }
+
+  use(fn) {
+    this.middlewares.push(fn);
+    return this; // Chainable
+  }
+
+  async execute(context) {
+    let index = 0;
+
+    const next = async () => {
+      if (index < this.middlewares.length) {
+        const middleware = this.middlewares[index++];
+        await middleware(context, next);
+      }
+    };
+
+    await next();
+    return context;
+  }
+}
+
+// Usage
+const pipeline = new Pipeline();
+
+pipeline
+  .use(async (ctx, next) => {
+    ctx.startTime = Date.now();
+    await next();
+    ctx.duration = Date.now() - ctx.startTime;
+  })
+  .use(async (ctx, next) => {
+    console.log(`Processing: ${ctx.data}`);
+    ctx.data = ctx.data.toUpperCase();
+    await next();
+  })
+  .use(async (ctx, next) => {
+    ctx.processed = true;
+    await next();
+  });
+
+const result = await pipeline.execute({ data: 'hello' });
+// { data: 'HELLO', processed: true, startTime: ..., duration: ... }
+```
+
+### Dependency Injection (with Awilix)
+
+```javascript
+const { createContainer, asClass, asValue, Lifetime } = require('awilix');
+
+// Services
+class UserRepository {
+  constructor({ db }) {
+    this.db = db;
+  }
+  async findById(id) {
+    return this.db.collection('users').findOne({ _id: id });
+  }
+}
+
+class UserService {
+  constructor({ userRepository, logger }) {
+    this.userRepository = userRepository;
+    this.logger = logger;
+  }
+  async getUser(id) {
+    this.logger.log(`Fetching user ${id}`);
+    return this.userRepository.findById(id);
+  }
+}
+
+// Container setup
+const container = createContainer();
+
+container.register({
+  db: asValue(mongoConnection),
+  logger: asValue(console),
+  userRepository: asClass(UserRepository).setLifetime(Lifetime.SINGLETON),
+  userService: asClass(UserService).setLifetime(Lifetime.SINGLETON)
+});
+
+// Resolve
+const userService = container.resolve('userService');
+await userService.getUser('123');
+```
+
+### Repository Pattern (Mongoose)
+
+```javascript
+// repositories/baseRepository.js
+class BaseRepository {
+  constructor(model) {
+    this.model = model;
+  }
+
+  async findAll(filter = {}, options = {}) {
+    const { page = 1, limit = 10, sort = '-createdAt' } = options;
+    return this.model.find(filter)
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit);
+  }
+
+  async findById(id) {
+    return this.model.findById(id);
+  }
+
+  async create(data) {
+    return this.model.create(data);
+  }
+
+  async update(id, data) {
+    return this.model.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+  }
+
+  async delete(id) {
+    return this.model.findByIdAndDelete(id);
+  }
+
+  async count(filter = {}) {
+    return this.model.countDocuments(filter);
+  }
+}
+
+// repositories/userRepository.js
+const User = require('../models/User');
+
+class UserRepository extends BaseRepository {
+  constructor() {
+    super(User);
+  }
+
+  async findByEmail(email) {
+    return this.model.findOne({ email });
+  }
+
+  async findActiveUsers() {
+    return this.model.find({ status: 'active' });
+  }
+}
+
+module.exports = new UserRepository();
+```
+
+### Repository Pattern (Prisma)
+
+```javascript
+// repositories/prismaUserRepository.js
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+class PrismaUserRepository {
+  async findAll(options = {}) {
+    const { page = 1, limit = 10 } = options;
+    return prisma.user.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async findById(id) {
+    return prisma.user.findUnique({ where: { id } });
+  }
+
+  async findByEmail(email) {
+    return prisma.user.findUnique({ where: { email } });
+  }
+
+  async create(data) {
+    return prisma.user.create({ data });
+  }
+
+  async update(id, data) {
+    return prisma.user.update({ where: { id }, data });
+  }
+
+  async delete(id) {
+    return prisma.user.delete({ where: { id } });
+  }
+}
+
+module.exports = new PrismaUserRepository();
+```
+
+---
+
+## Interview Questions — Rapid Fire
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **Singleton in Node.js?** | Module caching — `require()` caches after first load. **Same instance** for subsequent imports |
+| 2 | **Observer vs Pub/Sub?** | Observer: subject knows observers (`EventEmitter`). Pub/Sub: **fully decoupled** via broker |
+| 3 | **Middleware pattern?** | Chain of responsibility — functions execute in sequence, each calls `next()` |
+| 4 | **Why Factory pattern?** | Decouple creation from usage. **Swap implementations** without changing consumers |
+| 5 | **DI in Node.js?** | Constructor injection manually, or `awilix` container. Pass deps instead of importing |
+| 6 | **Repository pattern?** | Abstraction over data access. **Decouples** business logic from DB queries |
+| 7 | **Module vs Revealing Module?** | Module: Node.js native (`exports`). Revealing: IIFE returning public API |
+| 8 | **When Strategy pattern?** | Multiple algorithms for same task (payment, auth) — **swap at runtime** |
+| 9 | **EventEmitter methods?** | `on()` (subscribe), `once()` (once), `emit()` (publish), `removeListener()` (cleanup) |
+| 10 | **Mongoose vs Prisma?** | Mongoose: schema-based, MongoDB-native. Prisma: **type-safe**, multi-DB, auto-generated client |
+
+---
+
+## Quick Reference
+
+```
+MODULE:       module.exports + require() | Private via closure | One file = one module
+SINGLETON:    Module caching (require) | new Instance() exported | ⚠️ Path-dependent
+FACTORY:      createThing(type) → returns instance | Swap implementations at runtime
+STRATEGY:     setStrategy(impl) | Interchangeable algorithms | Payment/Auth/Logging
+OBSERVER:     EventEmitter | on/emit/once | Subject knows observers
+PUB/SUB:      subscribe(event, cb) + publish(event, data) | Fully decoupled
+MIDDLEWARE:   (req/ctx, next) → next() | Chain of responsibility | Express pipeline
+DI:           Constructor injection | awilix (container) | Register + resolve
+REPOSITORY:   BaseRepository → findAll/findById/create/update/delete | Mongoose or Prisma
+```
+# Node.js Event Loop — Interview Preparation
+
+---
+
+## Core Concepts
+
+### Event Loop
+
+> ***Single-threaded JS uses a loop: Call Stack → all Microtasks → one Macrotask → repeat.***
+
+```
+┌──────────────┐
+│  Call Stack   │ ← Synchronous code executes here
+└──────┬───────┘
+       ↓
+┌──────────────┐
+│  Microtask Q  │ ← Promise callbacks, queueMicrotask, MutationObserver
+└──────┬───────┘
+       ↓
+┌──────────────┐
+│  Macrotask Q  │ ← setTimeout, setInterval, I/O, UI rendering
+└──────────────┘
+```
+
+| Microtasks 🔵 | Macrotasks 🟠 |
+|---------------|---------------|
+| `Promise.then` / `catch` / `finally` | `setTimeout` / `setInterval` |
+| `await` continuation | `setImmediate` |
+| `process.nextTick` | I/O callbacks |
+| `queueMicrotask` | DOM events |
+
+> ⚡ **Key Rule:** ALL microtasks drain completely before the event loop processes the **next macrotask**.
+
+```javascript
+console.log('1');
+setTimeout(() => console.log('2'), 0);
+Promise.resolve().then(() => console.log('3'));
+console.log('4');
+// Output: 1, 4, 3, 2
+```
+
+---
+
+## Deep Dive
+
+### Event Loop Execution Order — Async Interview Question
+
+> 💡 **Interview tip:** Walk through the code aloud, labeling each line as SYNC / MICRO / MACRO.
+
+```javascript
+console.log("A");                          // 1️⃣ SYNC — prints immediately
+
+setTimeout(() => console.log("B"), 0);     // 📥 → Macrotask queue
+
+Promise.resolve().then(() => {
+  console.log("C");                        // 3️⃣ MICRO — runs after all sync
+  setTimeout(() => console.log("D"), 0);   // 📥 → Macrotask queue (scheduled during micro phase)
+});
+
+(async function () {
+  console.log("E");                        // 2️⃣ SYNC — before await
+  await Promise.resolve();
+  console.log("F");                        // 4️⃣ MICRO — code after await = microtask
+})();
+
+console.log("G");                          // 1️⃣ SYNC — prints immediately
+
+// Output: A → E → G → C → F → B → D
+//         ───SYNC───   ─MICRO─   ─MACRO─
+```
+
+#### Execution Breakdown
+
+| Phase | What runs | Output |
+|-------|-----------|--------|
+| 🔴 **Synchronous** | `console.log("A")`, `console.log("E")` (before await), `console.log("G")` | `A E G` |
+| 🔵 **Microtasks** | `.then()` → `"C"`, `await` continuation → `"F"` | `C F` |
+| 🟠 **Macrotasks** | `setTimeout` → `"B"`, inner `setTimeout` → `"D"` | `B D` |
+
+> ⚡ **Core Rule:**
+> ```
+> 1. Call Stack (Synchronous code)
+> 2. Microtask Queue (Promises, async/await)
+> 3. Macrotask Queue (setTimeout, setInterval)
+> ```
+
+> ⚠️ **`async/await` gotcha:** Code *before* `await` runs **synchronously**. Code *after* `await` becomes a **microtask**.
+
+#### Quick Interview Explanation
+
+> *"JavaScript first runs synchronous code, then processes all microtasks like Promise callbacks and async/await continuations, and finally processes macrotasks like setTimeout callbacks."*
+
+---
+
+### Callback Hell → Solutions
+
+> ***Deeply nested callbacks → flatten with Promises or async/await.***
+
+```javascript
+// ❌ Callback Hell (pyramid of doom)
+getData(a => {
+  getMore(a, b => {
+    getEvenMore(b, c => { /* deeply nested */ });
+  });
+});
+
+// ✅ Async/Await (cleanest)
+async function fetchAll() {
+  const a = await getData();
+  const b = await getMore(a);
+  const c = await getEvenMore(b);
+  return c;
+}
+```
+
+| Solution | How |
+|----------|-----|
+| **Promises** | `.then()` chaining flattens nesting |
+| **Async/Await** | Synchronous-looking async code |
+| **RxJS** | Observable streams with operators |
+
+---
+
+## Node.js Event Loop Phases (Advanced)
+
+> ***Node.js has **6 phases** per loop iteration, managed by libuv.***
+
+```
+   ┌───────────────────────────┐
+┌─>│        1. timers          │  ← setTimeout, setInterval callbacks
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │   2. pending callbacks    │  ← I/O callbacks deferred to next loop
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │     3. idle, prepare      │  ← Internal use only
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │         4. poll           │  ← Retrieve new I/O events, execute I/O callbacks
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │        5. check           │  ← setImmediate() callbacks
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │    6. close callbacks     │  ← socket.on('close'), cleanup
+│  └───────────────────────────┘
+```
+
+### `setImmediate()` vs `setTimeout()` vs `process.nextTick()`
+
+#### ⚡ Execution Priority
+
+```
+🔴 process.nextTick()     ← highest (before ALL I/O)
+🟠 Promise.then()
+🟡 setTimeout(fn, 0)      ← timer phase
+🟢 setImmediate()         ← check phase (lowest outside I/O)
+```
+
+| | `process.nextTick()` | `setImmediate()` | `setTimeout(fn, 0)` |
+|-|---------------------|-------------------|---------------------|
+| **Queue** | Microtask (before Promises) | Check phase | Timer phase |
+| **When** | After current op, before ANY I/O | After I/O poll phase | After minimum delay |
+| **Use case** | Ensure callback runs before any I/O | Run after current I/O events | General deferred execution |
+
+```javascript
+setTimeout(() => console.log('timeout'), 0);
+setImmediate(() => console.log('immediate'));
+process.nextTick(() => console.log('nextTick'));
+Promise.resolve().then(() => console.log('promise'));
+
+// ✅ Guaranteed order:
+// nextTick    ← always first
+// promise     ← microtask, after nextTick
+// timeout OR immediate  ← non-deterministic outside I/O
+```
+
+> ⚠️ **Inside I/O callbacks, order IS guaranteed:**
+
+```javascript
+const fs = require('fs');
+
+fs.readFile('file.txt', () => {
+  setTimeout(() => console.log('timeout'), 0);
+  setImmediate(() => console.log('immediate'));
+  // ✅ Always: immediate, timeout — setImmediate runs in check phase, right after poll
+});
+```
+
+---
+
+## Interview Questions — Rapid Fire
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is the Event Loop?** | Mechanism that processes call stack → microtasks (Promises) → macrotasks (setTimeout) in a loop |
+| 2 | **Microtask vs Macrotask?** | Microtasks (Promises, nextTick) run before macrotasks (setTimeout, I/O). **ALL** microtasks drain first |
+| 3 | **What is `process.nextTick()`?** | Runs callback after current op, **before any I/O or timers**. Higher priority than Promises |
+| 4 | **`setImmediate` vs `setTimeout(0)`?** | Inside I/O: **setImmediate always first**. Outside I/O: non-deterministic |
+| 5 | **Is Node.js single-threaded?** | Yes for JS execution. But libuv uses **4 threads** (default) for file I/O, DNS, crypto |
+| 6 | **What is callback hell?** | Deeply nested callbacks. Fix with Promises, async/await, or RxJS |
+| 7 | **Block the event loop?** | All async stalls — no I/O, no timers, no requests. Use `worker_threads` for CPU work |
+| 8 | **`async/await` + event loop?** | Code after `await` is scheduled as a **microtask**, just like `.then()` |
+
+---
+
+## Quick Reference
+
+```
+EVENT LOOP:   Call Stack → Microtasks (ALL) → Macrotask (ONE) → repeat
+MICROTASKS:   process.nextTick > Promise.then > queueMicrotask
+MACROTASKS:   setTimeout | setInterval | setImmediate | I/O callbacks
+NODE PHASES:  timers → pending → idle → poll → check → close
+PRIORITY:     nextTick > Promises > timers > setImmediate (outside I/O)
+INSIDE I/O:   setImmediate always before setTimeout(0)
+THREAD POOL:  libuv uses 4 threads (UV_THREADPOOL_SIZE) for file I/O, DNS, crypto
+BLOCKING:     Never block event loop — use worker_threads for CPU-intensive tasks
+```
+# CSS — Interview Preparation
 
 ---
 
@@ -1416,7 +3284,7 @@ INCIDENT:  Assess → Communicate → Isolate → Fix → Document → Prevent
 
 ### CSS Specificity
 
-Specificity determines which CSS rule wins when multiple rules target the same element.
+> ***Specificity determines which CSS rule wins. Higher specificity = higher priority.***
 
 **Hierarchy (highest → lowest):**
 ```
@@ -1452,13 +3320,28 @@ p { color: orange !important; }
 
 **Resolution order when specificity is equal:** Last rule in source order wins.
 
+> ⚠️ **Avoid `!important`** — makes debugging/overriding painful. Use it only as a last resort.
+
 **Best Practices:**
-- Avoid `!important` — makes debugging/overriding painful
 - Prefer classes over IDs for styling (lower specificity = easier to override)
 - Use BEM naming convention (`.block__element--modifier`) to avoid specificity wars
 - Inline styles should be reserved for dynamic/JS-driven styles only
 
 ---
+
+## Quick Reference
+
+```
+SPECIFICITY:  !important > inline > #id > .class > element > *
+CALCULATION:  (inline, IDs, classes, elements) — compare left to right
+TIE-BREAKER:  Last rule in source order wins
+BEST PRACTICE: Prefer classes, avoid !important, use BEM naming
+```
+# JavaScript — Interview Preparation
+
+---
+
+## Core Concepts
 
 ### `var` vs `let` vs `const`
 
@@ -1470,7 +3353,8 @@ p { color: orange !important; }
 | Re-assignment | Yes | Yes | No |
 
 ### Closures
-A closure is a function that retains access to its outer scope's variables even after the outer function has returned.
+
+> ***A function that retains access to its outer scope’s variables even after the outer function has returned.***
 
 ```javascript
 function createCounter() {
@@ -1524,223 +3408,6 @@ For deep freeze, recursively freeze nested objects.
 ---
 
 ## Deep Dive
-
-### Event Loop
-JavaScript is single-threaded. The event loop manages async execution:
-
-```
-┌──────────────┐
-│  Call Stack   │ ← Synchronous code executes here
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│  Microtask Q  │ ← Promise callbacks, queueMicrotask, MutationObserver
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│  Macrotask Q  │ ← setTimeout, setInterval, I/O, UI rendering
-└──────────────┘
-```
-
-**Order:** Call stack empties → ALL microtasks → ONE macrotask → repeat.
-
-```javascript
-console.log('1');
-setTimeout(() => console.log('2'), 0);
-Promise.resolve().then(() => console.log('3'));
-console.log('4');
-// Output: 1, 4, 3, 2
-```
-
-### Event Loop Execution Order — Async Interview Question
-
-#### Code Example
-
-```javascript
-console.log("A");
-
-setTimeout(() => console.log("B"), 0);
-
-Promise.resolve().then(() => {
-  console.log("C");
-
-  setTimeout(() => console.log("D"), 0);
-});
-
-(async function () {
-  console.log("E");
-
-  await Promise.resolve();
-
-  console.log("F");
-})();
-
-console.log("G");
-```
-
-#### Output
-
-```txt
-A
-E
-G
-C
-F
-B
-D
-```
-
-#### Step-by-Step Execution
-
-**1. Synchronous Execution (Call Stack)**
-
-JavaScript first executes all synchronous code:
-
-```javascript
-console.log("A"); // A
-
-(async function () {
-  console.log("E"); // E
-})();
-
-console.log("G"); // G
-```
-
-Current Output:
-
-```txt
-A
-E
-G
-```
-
-**2. Macrotask Queue (`setTimeout`)**
-
-```javascript
-setTimeout(() => console.log("B"), 0);
-```
-
-`setTimeout` callbacks are placed in the **macrotask queue**.
-
-So `B` waits until:
-- synchronous code finishes
-- all microtasks finish
-
-**3. Microtask Queue (`Promise.then`)**
-
-```javascript
-Promise.resolve().then(() => {
-  console.log("C");
-
-  setTimeout(() => console.log("D"), 0);
-});
-```
-
-`.then()` callbacks are placed in the **microtask queue**.
-
-So after synchronous execution completes:
-- `C` executes
-- `D` gets scheduled into macrotask queue
-
-**4. `async/await` Behavior**
-
-```javascript
-(async function () {
-  console.log("E");
-
-  await Promise.resolve();
-
-  console.log("F");
-})();
-```
-
-Important behavior:
-- code before `await` executes synchronously
-- code after `await` becomes a microtask
-
-So:
-- `E` prints immediately
-- `F` executes later in the microtask queue
-
-#### Final Execution Order
-
-**Synchronous Phase**
-
-```txt
-A
-E
-G
-```
-
-**Microtasks**
-
-```txt
-C
-F
-```
-
-**Macrotasks**
-
-```txt
-B
-D
-```
-
-#### Core Rule
-
-JavaScript execution priority:
-
-```txt
-1. Call Stack (Synchronous code)
-2. Microtask Queue (Promises, async/await)
-3. Macrotask Queue (setTimeout, setInterval)
-```
-
-#### Important Interview Notes
-
-**Microtasks include:**
-- `Promise.then`
-- `catch`
-- `finally`
-- `await`
-- `queueMicrotask`
-
-**Macrotasks include:**
-- `setTimeout`
-- `setInterval`
-- DOM events
-- I/O operations
-
-**Key Rule:** All microtasks execute completely before the event loop processes the next macrotask.
-
-#### Quick Interview Explanation
-
-"JavaScript first runs synchronous code, then processes all microtasks like Promise callbacks and async/await continuations, and finally processes macrotasks like setTimeout callbacks."
-
-### Callback Hell → Solutions
-**Problem:** Deeply nested callbacks for sequential async operations.
-```javascript
-getData(a => {
-  getMore(a, b => {
-    getEvenMore(b, c => { /* pyramid of doom */ });
-  });
-});
-```
-
-**Solutions:**
-1. **Promises:** `.then()` chaining flattens nesting
-2. **Async/Await:** Synchronous-looking async code
-3. **RxJS:** Observable streams with operators
-
-```javascript
-// Async/Await (cleanest)
-async function fetchAll() {
-  const a = await getData();
-  const b = await getMore(a);
-  const c = await getEvenMore(b);
-  return c;
-}
-```
 
 ### `this` Context Rules
 1. **Global:** `window` (browser) / `undefined` (strict mode)
@@ -1861,9 +3528,7 @@ document.cookie = 'token=abc123; Secure; SameSite=Strict; Max-Age=3600';
 
 **Security best practices for tokens:**
 - **Auth tokens (JWT):** Store in `HttpOnly` cookies (not accessible via JS → XSS safe)
-- **Never** store sensitive data in `localStorage` — vulnerable to XSS attacks
-- Use `Secure` flag → cookie sent only over HTTPS
-- Use `SameSite=Strict` → prevents CSRF
+> ⚠️ **Never store sensitive data in `localStorage`** — vulnerable to XSS attacks.
 
 **When to use what:**
 ```
@@ -1877,7 +3542,7 @@ Tracking/consent  → cookies (server needs access)
 
 ## Tradeoffs & Pitfalls
 
-- **`==` vs `===`:** Always use `===` (strict equality). `==` does type coercion (`"0" == false` is `true`).
+> ⚡ **Always use `===`** (strict equality). `==` does type coercion (`"0" == false` is `true`).
 - **Arrow functions:** No own `this`, `arguments`, or `super`. Can't be used as constructors.
 - **`typeof null === "object"`:** Known JS quirk. Check null explicitly.
 - **Floating point:** `0.1 + 0.2 !== 0.3`. Use `toFixed()` or integer math for money.
@@ -1888,80 +3553,16 @@ Tracking/consent  → cookies (server needs access)
 
 ## Interview Questions
 
-1. **What is hoisting?** Variable/function declarations are moved to top of scope during compilation. `var` → `undefined`, `let`/`const` → TDZ error.
-2. **Explain closures with example.** Function retaining outer scope variables after outer function returns. Used in module pattern, memoization.
-3. **What is the event loop?** Mechanism that processes call stack, microtask queue (Promises), then macrotask queue (setTimeout) in a loop.
-4. **Difference between `==` and `===`?** `==` coerces types before comparing. `===` compares type AND value.
-5. **What is a Promise?** Object representing eventual completion/failure of an async operation. States: pending, fulfilled, rejected.
-6. **`Promise.all` vs `Promise.allSettled` vs `Promise.race`?** `all` = fail-fast on first rejection. `allSettled` = wait for all, return all results. `race` = first to resolve/reject wins.
-7. **What is debouncing vs throttling?** Debounce = execute after delay, reset on new trigger. Throttle = execute at most once per interval.
-8. **Explain prototypal inheritance.** Objects inherit from other objects via prototype chain. `Object.create()`, `class extends`.
-
----
-
-## Tooling & Package Management
-
-### `npm audit`
-
-Scans your project's dependency tree for known security vulnerabilities.
-
-```bash
-# Run a vulnerability audit
-npm audit
-
-# Output: table of vulnerabilities with severity (low/moderate/high/critical)
-
-# Auto-fix vulnerabilities (updates to patched versions)
-npm audit fix
-
-# Force fix — may include breaking major version changes
-npm audit fix --force
-
-# Generate JSON report (useful for CI/CD pipelines)
-npm audit --json
-```
-
-**How it works:**
-1. Reads `package-lock.json` to get exact installed versions
-2. Checks against npm's security advisory database
-3. Reports vulnerable packages, severity, and recommended fix version
-
-**In CI/CD:** Add `npm audit --audit-level=high` to fail builds on high/critical vulnerabilities.
-
-### `package.json` vs `package-lock.json`
-
-| | `package.json` | `package-lock.json` |
-|-|---------------|--------------------|
-| **Purpose** | Project manifest — metadata, scripts, dependency ranges | Exact dependency tree lock |
-| **Version format** | Ranges: `^1.2.3`, `~1.2.3`, `>=1.0.0` | Exact: `1.2.3` |
-| **Created by** | `npm init` or manually | Auto-generated by `npm install` |
-| **Commit to git?** | Always | Always (ensures reproducible builds) |
-| **Editable?** | Yes (manually) | No (auto-managed by npm) |
-| **Contains** | Direct dependencies only | Entire nested dependency tree |
-
-**Version range symbols:**
-```
-^1.2.3  →  >=1.2.3 and <2.0.0  (minor + patch updates allowed)
-~1.2.3  →  >=1.2.3 and <1.3.0  (patch updates only)
-1.2.3   →  exactly 1.2.3       (pinned)
-```
-
-**Why `package-lock.json` matters:**
-- Without it, `npm install` on different machines may install different versions (within the `^`/`~` range)
-- Guarantees every developer and CI/CD gets the exact same dependency versions
-- Makes builds reproducible and deterministic
-
-**Common scenario:**
-```bash
-# Developer A adds a package
-npm install lodash      # Updates both package.json AND package-lock.json
-
-# Developer B pulls and installs
-npm install             # Reads package-lock.json → gets exact same versions
-
-# To update all dependencies to latest allowed by ranges
-npm update              # Updates package-lock.json
-```
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is hoisting?** | Declarations moved to top of scope. `var` → `undefined`, `let`/`const` → TDZ error |
+| 2 | **Explain closures** | Function retaining outer scope variables after outer function returns. Used in module pattern, memoization |
+| 3 | **What is the event loop?** | Processes call stack → microtask queue (Promises) → macrotask queue (setTimeout) in a loop |
+| 4 | **`==` vs `===`?** | `==` coerces types. `===` compares type **AND** value |
+| 5 | **What is a Promise?** | Object representing eventual completion/failure. States: **pending**, **fulfilled**, **rejected** |
+| 6 | **`Promise.all` vs `allSettled` vs `race`?** | `all` = fail-fast. `allSettled` = wait for all. `race` = first to settle wins |
+| 7 | **Debouncing vs throttling?** | Debounce = execute after delay, reset on new trigger. Throttle = at most once per interval |
+| 8 | **Prototypal inheritance?** | Objects inherit via prototype chain. `Object.create()`, `class extends` |
 
 ---
 
@@ -1985,7 +3586,10 @@ FALSY:        false, 0, "", null, undefined, NaN
 ## Core Concepts
 
 ### Component Architecture
-- **Component** = class + template + styles. Decorated with `@Component({ selector, templateUrl, styleUrls })`.
+
+> ***Component = class + template + styles. Every Angular app is a tree of components.***
+
+- Decorated with `@Component({ selector, templateUrl, styleUrls })`.
 - Every app has a root component bootstrapped in `AppModule`.
 - Components are directives with templates — they control a section of the view.
 
@@ -2302,7 +3906,7 @@ export class UserComponent implements OnInit {
 }
 ```
 
-**Rule of thumb:** Constructor = inject dependencies. `ngOnInit` = everything else.
+> 💡 **Rule of thumb:** Constructor = inject dependencies. `ngOnInit` = everything else.
 
 ### Forms
 
@@ -2525,8 +4129,8 @@ Angular 17 introduced `@defer` blocks — lazy load **individual components** (n
 
 ## Tradeoffs & Pitfalls
 
-- **Memory leaks:** Always unsubscribe from observables. Use `takeUntil`, `async` pipe, or `DestroyRef`.
-- **OnPush gotcha:** Mutating objects won't trigger change detection — must create new references.
+> ⚠️ **Memory leaks:** Always unsubscribe from observables. Use `takeUntil`, `async` pipe, or `DestroyRef`.
+> ⚠️ **OnPush gotcha:** Mutating objects won't trigger change detection — must create new references.
 - **Eager loading everything:** Use lazy loading for feature modules to reduce initial bundle size.
 - **`ngFor` without `trackBy`:** Causes full DOM re-render on list changes.
 - **Template-driven forms at scale:** Become unmanageable; switch to reactive forms early.
@@ -2537,16 +4141,157 @@ Angular 17 introduced `@defer` blocks — lazy load **individual components** (n
 
 ## Interview Questions — Rapid Fire
 
-1. **Angular vs AngularJS?** Angular = TypeScript, component-based, RxJS. AngularJS = JavaScript, scope/controller-based.
-2. **AOT vs JIT?** AOT compiles at build time (smaller bundle, faster). JIT compiles at runtime (default for `ng serve`).
-3. **What is Transpiling?** TypeScript → JavaScript conversion during build.
-4. **Why TypeScript?** Strict OOP, type safety, better tooling, catches errors at compile time.
-5. **Standalone Components?** (Angular 14+) Components without `NgModule`, import dependencies directly.
-6. **Signals?** (Angular 16+) Fine-grained reactive primitives, more predictable than zone.js-based detection.
-7. **`ng-content` vs `ng-template`?** `ng-content` = content projection (transclusion). `ng-template` = lazy template, rendered conditionally.
-8. **`ViewChild` vs `ViewChildren`?** `ViewChild` = first match. `ViewChildren` = QueryList of all matches.
-9. **Angular Material?** UI component library following Material Design.
-10. **Building blocks?** Components, Modules, Services, Directives, Pipes, Routing, Templates, Data Binding, DI.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **Angular vs AngularJS?** | Angular = TypeScript, component-based, RxJS. AngularJS = JS, scope/controller-based |
+| 2 | **AOT vs JIT?** | AOT = build time (smaller, faster). JIT = runtime (default for `ng serve`) |
+| 3 | **What is Transpiling?** | TypeScript → JavaScript conversion during build |
+| 4 | **Why TypeScript?** | Strict OOP, type safety, better tooling, **compile-time error detection** |
+| 5 | **Standalone Components?** | (Angular **14+**) Components without `NgModule`, import dependencies directly |
+| 6 | **Signals?** | (Angular **16+**) Fine-grained reactive primitives, more predictable than zone.js |
+| 7 | **`ng-content` vs `ng-template`?** | `ng-content` = content projection. `ng-template` = lazy template, rendered conditionally |
+| 8 | **`ViewChild` vs `ViewChildren`?** | `ViewChild` = first match. `ViewChildren` = QueryList of all matches |
+| 9 | **Angular Material?** | UI component library following Material Design |
+| 10 | **Building blocks?** | Components, Modules, Services, Directives, Pipes, Routing, Templates, DI |
+
+---
+
+## Microfrontends
+
+### What is a Microfrontend?
+A microfrontend extends microservice principles to the frontend — splitting a monolithic frontend into smaller, independently deployable UI applications that compose into a single user experience.
+
+```
+┌──────────────────────────────────────────────────┐
+│                  Container / Shell                │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
+│  │  Team A     │  │  Team B     │  │  Team C     │  │
+│  │  (Angular)  │  │  (React)    │  │  (Vue)      │  │
+│  │  Catalog    │  │  Cart       │  │  Checkout   │  │
+│  └────────────┘  └────────────┘  └────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
+### Implementation Approaches
+
+| Approach | How | Pros | Cons |
+|----------|-----|------|------|
+| **Module Federation** (Webpack 5) | Load remote modules at runtime | Best DX, shared dependencies, lazy loading | Webpack-only, version alignment needed |
+| **Single-SPA** | Framework-agnostic orchestrator | Polyglot (mix Angular + React), mature ecosystem | Complex setup, global state tricky |
+| **iframes** | Embed each micro-app in iframe | Complete isolation, simple | Poor UX (no shared styles/routing), performance hit |
+| **Web Components** | Each micro-app as custom element | Framework-agnostic, native browser support | Limited tooling, Shadow DOM styling challenges |
+
+### Data Sharing Between Microfrontends
+
+| Pattern | How | When to Use |
+|---------|-----|-------------|
+| **Custom Events** | `window.dispatchEvent(new CustomEvent('cart-updated', { detail }))` | Loose coupling, simple notifications |
+| **Shared State Store** | Shared Redux/Zustand store loaded via Module Federation | Complex shared state, multiple consumers |
+| **URL / Route Params** | Pass data via URL query params or route segments | Navigation-driven data |
+| **Props / Attributes** | Pass data as Web Component attributes or framework props | Parent → child data flow |
+| **Pub/Sub (Event Bus)** | Lightweight event bus (RxJS Subject on `window`) | Decoupled, event-driven communication |
+| **Shared API Layer** | Each MFE fetches from same backend, caches shared | Independent data fetching |
+
+**Custom Events example:**
+```javascript
+// Producer (Cart MFE)
+window.dispatchEvent(new CustomEvent('cart:updated', {
+  detail: { items: cart, total: cart.length }
+}));
+
+// Consumer (Header MFE)
+window.addEventListener('cart:updated', (e) => {
+  document.getElementById('cart-count').textContent = e.detail.total;
+});
+```
+
+**Shared state via Module Federation:**
+```javascript
+// shared-store (remote module exposed by Shell)
+import { BehaviorSubject } from 'rxjs';
+export const user$ = new BehaviorSubject(null);
+export const setUser = (user) => user$.next(user);
+
+// Auth MFE — sets user after login
+import { setUser } from 'shell/shared-store';
+setUser({ name: 'Alice', role: 'admin' });
+
+// Dashboard MFE — reads user
+import { user$ } from 'shell/shared-store';
+user$.subscribe(user => console.log('Logged in:', user?.name));
+```
+
+### Key Design Principles
+- **Independent deployment** — each MFE has its own CI/CD pipeline
+- **Team ownership** — each team owns a vertical slice (UI + API + DB)
+- **Shared nothing** — minimize shared dependencies; share only contracts
+- **Consistent UX** — use a shared design system / component library
+
+---
+
+## Tooling & Package Management
+
+### `npm audit`
+
+Scans your project's dependency tree for known security vulnerabilities.
+
+```bash
+# Run a vulnerability audit
+npm audit
+
+# Output: table of vulnerabilities with severity (low/moderate/high/critical)
+
+# Auto-fix vulnerabilities (updates to patched versions)
+npm audit fix
+
+# Force fix — may include breaking major version changes
+npm audit fix --force
+
+# Generate JSON report (useful for CI/CD pipelines)
+npm audit --json
+```
+
+**How it works:**
+1. Reads `package-lock.json` to get exact installed versions
+2. Checks against npm's security advisory database
+3. Reports vulnerable packages, severity, and recommended fix version
+
+**In CI/CD:** Add `npm audit --audit-level=high` to fail builds on high/critical vulnerabilities.
+
+### `package.json` vs `package-lock.json`
+
+| | `package.json` | `package-lock.json` |
+|-|---------------|--------------------|
+| **Purpose** | Project manifest — metadata, scripts, dependency ranges | Exact dependency tree lock |
+| **Version format** | Ranges: `^1.2.3`, `~1.2.3`, `>=1.0.0` | Exact: `1.2.3` |
+| **Created by** | `npm init` or manually | Auto-generated by `npm install` |
+| **Commit to git?** | Always | Always (ensures reproducible builds) |
+| **Editable?** | Yes (manually) | No (auto-managed by npm) |
+| **Contains** | Direct dependencies only | Entire nested dependency tree |
+
+**Version range symbols:**
+```
+^1.2.3  →  >=1.2.3 and <2.0.0  (minor + patch updates allowed)
+~1.2.3  →  >=1.2.3 and <1.3.0  (patch updates only)
+1.2.3   →  exactly 1.2.3       (pinned)
+```
+
+**Why `package-lock.json` matters:**
+- Without it, `npm install` on different machines may install different versions (within the `^`/`~` range)
+- Guarantees every developer and CI/CD gets the exact same dependency versions
+- Makes builds reproducible and deterministic
+
+**Common scenario:**
+```bash
+# Developer A adds a package
+npm install lodash      # Updates both package.json AND package-lock.json
+
+# Developer B pulls and installs
+npm install             # Reads package-lock.json → gets exact same versions
+
+# To update all dependencies to latest allowed by ranges
+npm update              # Updates package-lock.json
+```
 
 ---
 
@@ -2582,6 +4327,8 @@ AOT > JIT:  Faster render, smaller bundle, earlier error detection
 
 ### State Management
 
+> ***Local state = `useState`. Global state = Redux / Context / Zustand. Pick by complexity.***
+
 | Scope | Tool | Use Case |
 |-------|------|----------|
 | **Local** | `useState` | UI state, component-specific data |
@@ -2610,6 +4357,148 @@ Component → dispatch(action) → Reducer → Store updates → UI re-renders
 
 ---
 
+## Microfrontends
+
+### What is a Microfrontend?
+
+> ***Split a monolithic frontend into independently deployable UI apps that compose into one experience.***
+
+A microfrontend extends microservice principles to the frontend.
+
+```
+┌──────────────────────────────────────────────────┐
+│                  Container / Shell                │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
+│  │  Team A     │  │  Team B     │  │  Team C     │  │
+│  │  (Angular)  │  │  (React)    │  │  (Vue)      │  │
+│  │  Catalog    │  │  Cart       │  │  Checkout   │  │
+│  └────────────┘  └────────────┘  └────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
+### Implementation Approaches
+
+| Approach | How | Pros | Cons |
+|----------|-----|------|------|
+| **Module Federation** (Webpack 5) | Load remote modules at runtime | Best DX, shared dependencies, lazy loading | Webpack-only, version alignment needed |
+| **Single-SPA** | Framework-agnostic orchestrator | Polyglot (mix Angular + React), mature ecosystem | Complex setup, global state tricky |
+| **iframes** | Embed each micro-app in iframe | Complete isolation, simple | Poor UX (no shared styles/routing), performance hit |
+| **Web Components** | Each micro-app as custom element | Framework-agnostic, native browser support | Limited tooling, Shadow DOM styling challenges |
+
+### Data Sharing Between Microfrontends
+
+| Pattern | How | When to Use |
+|---------|-----|-------------|
+| **Custom Events** | `window.dispatchEvent(new CustomEvent('cart-updated', { detail }))` | Loose coupling, simple notifications |
+| **Shared State Store** | Shared Redux/Zustand store loaded via Module Federation | Complex shared state, multiple consumers |
+| **URL / Route Params** | Pass data via URL query params or route segments | Navigation-driven data |
+| **Props / Attributes** | Pass data as Web Component attributes or framework props | Parent → child data flow |
+| **Pub/Sub (Event Bus)** | Lightweight event bus (RxJS Subject on `window`) | Decoupled, event-driven communication |
+| **Shared API Layer** | Each MFE fetches from same backend, caches shared | Independent data fetching |
+
+**Custom Events example:**
+```javascript
+// Producer (Cart MFE)
+window.dispatchEvent(new CustomEvent('cart:updated', {
+  detail: { items: cart, total: cart.length }
+}));
+
+// Consumer (Header MFE)
+window.addEventListener('cart:updated', (e) => {
+  document.getElementById('cart-count').textContent = e.detail.total;
+});
+```
+
+**Shared state via Module Federation:**
+```javascript
+// shared-store (remote module exposed by Shell)
+import { BehaviorSubject } from 'rxjs';
+export const user$ = new BehaviorSubject(null);
+export const setUser = (user) => user$.next(user);
+
+// Auth MFE — sets user after login
+import { setUser } from 'shell/shared-store';
+setUser({ name: 'Alice', role: 'admin' });
+
+// Dashboard MFE — reads user
+import { user$ } from 'shell/shared-store';
+user$.subscribe(user => console.log('Logged in:', user?.name));
+```
+
+### Key Design Principles
+- **Independent deployment** — each MFE has its own CI/CD pipeline
+- **Team ownership** — each team owns a vertical slice (UI + API + DB)
+- **Shared nothing** — minimize shared dependencies; share only contracts
+- **Consistent UX** — use a shared design system / component library
+
+---
+
+## Tooling & Package Management
+
+### `npm audit`
+
+Scans your project's dependency tree for known security vulnerabilities.
+
+```bash
+# Run a vulnerability audit
+npm audit
+
+# Output: table of vulnerabilities with severity (low/moderate/high/critical)
+
+# Auto-fix vulnerabilities (updates to patched versions)
+npm audit fix
+
+# Force fix — may include breaking major version changes
+npm audit fix --force
+
+# Generate JSON report (useful for CI/CD pipelines)
+npm audit --json
+```
+
+**How it works:**
+1. Reads `package-lock.json` to get exact installed versions
+2. Checks against npm's security advisory database
+3. Reports vulnerable packages, severity, and recommended fix version
+
+> ⚡ **In CI/CD:** Add `npm audit --audit-level=high` to fail builds on high/critical vulnerabilities.
+
+### `package.json` vs `package-lock.json`
+
+| | `package.json` | `package-lock.json` |
+|-|---------------|--------------------|
+| **Purpose** | Project manifest — metadata, scripts, dependency ranges | Exact dependency tree lock |
+| **Version format** | Ranges: `^1.2.3`, `~1.2.3`, `>=1.0.0` | Exact: `1.2.3` |
+| **Created by** | `npm init` or manually | Auto-generated by `npm install` |
+| **Commit to git?** | Always | Always (ensures reproducible builds) |
+| **Editable?** | Yes (manually) | No (auto-managed by npm) |
+| **Contains** | Direct dependencies only | Entire nested dependency tree |
+
+**Version range symbols:**
+```
+^1.2.3  →  >=1.2.3 and <2.0.0  (minor + patch updates allowed)
+~1.2.3  →  >=1.2.3 and <1.3.0  (patch updates only)
+1.2.3   →  exactly 1.2.3       (pinned)
+```
+
+**Why `package-lock.json` matters:**
+- Without it, `npm install` on different machines may install different versions (within the `^`/`~` range)
+- Guarantees every developer and CI/CD gets the exact same dependency versions
+- Makes builds reproducible and deterministic
+
+**Common scenario:**
+```bash
+# Developer A adds a package
+npm install lodash      # Updates both package.json AND package-lock.json
+
+# Developer B pulls and installs
+npm install             # Reads package-lock.json → gets exact same versions
+
+# To update all dependencies to latest allowed by ranges
+npm update              # Updates package-lock.json
+```
+
+---
+
 ## Quick Reference
 
 ```
@@ -2625,6 +4514,8 @@ HOOKS:    useState | useEffect | useContext | useReducer | useMemo | useCallback
 ## Core Concepts
 
 ### Normalization vs Denormalization
+
+> ***Normalize for write integrity (OLTP). Denormalize for read speed (OLAP).***
 
 | | Normalization | Denormalization |
 |-|--------------|----------------|
@@ -2877,7 +4768,7 @@ GROUP BY Name
 HAVING SUM(Marks) > 200;
 ```
 
-> **`WHERE` vs `HAVING`:** `WHERE` filters rows *before* grouping. `HAVING` filters groups *after* aggregation. You cannot use aggregate functions in `WHERE`.
+> 💡 **`WHERE` vs `HAVING`:** `WHERE` filters rows *before* grouping. `HAVING` filters groups *after* aggregation. You cannot use aggregate functions in `WHERE`.
 
 ### Temp Tables vs Table Variables
 
@@ -2956,7 +4847,7 @@ CREATE TABLE OrderItems (
 
 ## Tradeoffs & Pitfalls
 
-- **Over-indexing:** Each index = storage + write overhead on INSERT/UPDATE/DELETE.
+> ⚠️ **Over-indexing:** Each index = storage + write overhead on INSERT/UPDATE/DELETE.
 - **`COUNT(*)` vs `COUNT(column)`:** `COUNT(*)` counts NULLs. `COUNT(column)` skips NULLs.
 - **Cursors:** Extremely slow. Replace with set-based operations or CTEs.
 - **`UNION` vs `UNION ALL`:** UNION removes duplicates (slower). UNION ALL keeps all rows (faster).
@@ -2969,16 +4860,18 @@ CREATE TABLE OrderItems (
 
 ## Interview Questions — Rapid Fire
 
-1. **What is normalization?** DB design technique to eliminate data redundancy. 1NF→2NF→3NF.
-2. **Clustered vs Non-Clustered index?** Clustered = data stored in index order (1 per table). Non-clustered = separate structure with pointers (many per table).
-3. **SP vs Function?** SP can do DML + transactions + output params. Function must return value, SELECT only, callable in SELECT.
-4. **What is a CTE?** Temporary named result set defined with `WITH`. Can be recursive.
-5. **How to find Nth highest salary?** `ROW_NUMBER() OVER (ORDER BY Salary DESC)` in CTE, filter `WHERE RN = N`.
-6. **How to delete duplicates?** `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`, delete where RN > 1.
-7. **Temp table vs Table variable?** Temp = TempDB + transactions + indexes. Table var = memory + faster for small data.
-8. **What is a trigger?** SQL code auto-executed on table DML events. Uses INSERTED/DELETED magic tables.
-9. **`UNION` vs `UNION ALL`?** UNION removes duplicates. UNION ALL keeps all (faster).
-10. **How to optimize slow query?** Check execution plan, add indexes, avoid SELECT *, use EXISTS over IN, avoid cursors.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **What is normalization?** | DB design to eliminate redundancy. **1NF→2NF→3NF** |
+| 2 | **Clustered vs Non-Clustered?** | Clustered = data in index order (**1**/table). Non-clustered = pointers (many/table) |
+| 3 | **SP vs Function?** | SP = DML + transactions + output params. Function = must return value, SELECT only |
+| 4 | **What is a CTE?** | Temporary named result set with `WITH`. Can be **recursive** |
+| 5 | **Nth highest salary?** | `ROW_NUMBER() OVER (ORDER BY Salary DESC)` in CTE, filter `RN = N` |
+| 6 | **Delete duplicates?** | `ROW_NUMBER() OVER (PARTITION BY ...)`, delete where `RN > 1` |
+| 7 | **Temp table vs Table var?** | Temp = TempDB + indexes. Table var = memory, faster for **small data** |
+| 8 | **What is a trigger?** | Auto-executed SQL on DML events. Uses `INSERTED`/`DELETED` magic tables |
+| 9 | **`UNION` vs `UNION ALL`?** | UNION removes duplicates (slower). UNION ALL keeps all (**faster**) |
+| 10 | **Optimize slow query?** | Check execution plan, add indexes, avoid `SELECT *`, use `EXISTS` over `IN` |
 
 ---
 
@@ -3002,6 +4895,8 @@ PERF:           Execution plan | SQL Profiler | SET NOCOUNT ON | covering indexe
 ## Core Concepts
 
 ### Document Model
+
+> ***MongoDB stores data as BSON documents in collections. No rigid schema — documents can vary.***
 
 MongoDB stores data as BSON (Binary JSON) documents inside collections.
 
@@ -3060,7 +4955,9 @@ MongoDB stores data as BSON (Binary JSON) documents inside collections.
 
 ### Aggregation Pipeline
 
-The aggregation pipeline processes documents through a sequence of stages. Each stage transforms the data and passes results to the next stage.
+> ***Sequential stages that transform documents: `$match` → `$group` → `$sort` → `$project`. Filter early for performance.***
+
+The aggregation pipeline processes documents through a sequence of stages.
 
 ```txt
 Collection → $match → $group → $sort → $project → Result
@@ -3084,7 +4981,7 @@ Collection → $match → $group → $sort → $project → Result
 
 #### `$match` — Filter Documents
 
-Always place `$match` as early as possible to reduce documents processed by later stages.
+> ⚡ **Always place `$match` as early as possible** to reduce documents processed by later stages.
 
 ```javascript
 db.orders.aggregate([
@@ -3323,291 +5220,115 @@ Use `explain()`, MongoDB profiler, APM tools, query execution stats, and API lat
 
 ---
 
+### Index Cardinality
+
+**Cardinality** = number of distinct values in a field. Directly impacts how effective an index is.
+
+#### High vs Low Cardinality
+
+| | High Cardinality | Low Cardinality |
+|-|-----------------|-----------------|
+| **Example** | `email`, `userId`, `_id` | `status` (active/inactive), `gender`, `boolean flags` |
+| **Distinct values** | Many (close to document count) | Few (2-10 values) |
+| **Index effectiveness** | Excellent — each lookup narrows to few documents | Poor — index scan still returns large portion of collection |
+| **Selectivity** | High (queries filter out most documents) | Low (queries still match many documents) |
+
+> 💡 **Rule:** Index fields with **high cardinality first**. Low-cardinality fields alone are rarely worth indexing.
+
+#### Compound Index Ordering
+
+In compound indexes, **put the highest cardinality field first** for maximum selectivity:
+
+```javascript
+// Collection: orders (1M documents)
+// status: 3 distinct values (pending, shipped, delivered)
+// customerId: 50K distinct values
+
+// ❌ Low cardinality first — poor selectivity
+db.orders.createIndex({ status: 1, customerId: 1 });
+// Query { status: "pending", customerId: "C123" }
+// First narrows to ~333K docs, then filters by customerId
+
+// ✅ High cardinality first — excellent selectivity
+db.orders.createIndex({ customerId: 1, status: 1 });
+// Query { status: "pending", customerId: "C123" }
+// First narrows to ~20 docs, then filters by status
+```
+
+**Exception — ESR Rule (Equality, Sort, Range):**
+```javascript
+// For queries with equality + sort + range:
+// Put Equality fields first, then Sort fields, then Range fields
+// regardless of cardinality
+
+db.orders.createIndex({ status: 1, createdAt: 1, amount: 1 });
+// Supports: { status: "pending" } sorted by createdAt, with amount range
+```
+
+#### Measuring Cardinality
+
+```javascript
+// Check distinct count for a field
+db.orders.distinct("status").length;        // 3 → low cardinality
+db.orders.distinct("customerId").length;    // 50000 → high cardinality
+
+// Using aggregation for large collections (distinct has 16MB limit)
+db.orders.aggregate([
+  { $group: { _id: "$status" } },
+  { $count: "distinctCount" }
+]);
+```
+
+#### Using `explain()` to Validate Index Effectiveness
+
+```javascript
+db.orders.find({ customerId: "C123", status: "pending" })
+  .explain("executionStats");
+
+// Key fields to check:
+// executionStats.totalKeysExamined    → keys scanned in index
+// executionStats.totalDocsExamined    → documents fetched
+// executionStats.nReturned            → documents returned
+// 
+// Ideal: totalDocsExamined ≈ nReturned (no wasted scans)
+// Bad: totalDocsExamined >> nReturned (index not selective enough)
+```
+
+#### Sparse & Partial Indexes
+
+For fields that don't exist in every document, avoid bloated indexes:
+
+```javascript
+// Sparse index — only indexes documents where the field exists
+db.users.createIndex({ phoneNumber: 1 }, { sparse: true });
+// Skips documents without phoneNumber → smaller index, faster lookups
+
+// Partial index — indexes only documents matching a filter
+db.orders.createIndex(
+  { createdAt: 1 },
+  { partialFilterExpression: { status: "pending" } }
+);
+// Only indexes pending orders → much smaller index for active order queries
+```
+
+| | Regular Index | Sparse Index | Partial Index |
+|-|--------------|-------------|---------------|
+| **Indexes** | All documents | Only docs where field exists | Only docs matching filter |
+| **Size** | Largest | Smaller | Smallest (most targeted) |
+| **Use case** | Field exists in all docs | Optional/rare fields | Query-specific optimization |
+
+---
+
 ## Quick Reference
 
 ```txt
 CRUD:           insertOne | insertMany | find | updateOne | updateMany | deleteOne | deleteMany
 AGGREGATION:    $match | $group | $project | $sort | $limit | $skip | $unwind | $lookup | $facet
 ACCUMULATORS:   $sum | $avg | $min | $max | $count | $push | $addToSet | $first | $last
-```
-# Design Patterns — Interview Preparation
-
----
-
-## Core Concepts
-
-### Pattern Categories
-
-| Category | Focus | Patterns |
-|----------|-------|----------|
-| **Creational** | Object creation | Singleton, Factory, Abstract Factory, Builder, Prototype |
-| **Structural** | Object composition | Adapter, Facade, Decorator, Proxy, Bridge, Composite |
-| **Behavioral** | Object interaction | Strategy, Observer, Chain of Responsibility, Command, Template Method |
-
----
-
-## Deep Dive — Key Patterns
-
-### 1. Singleton (Creational)
-**Intent:** Ensure a class has only one instance with a global access point.
-
-```csharp
-public sealed class Logger
-{
-    private static Logger _instance;
-    private static readonly object _lock = new object();
-
-    private Logger() { }
-
-    public static Logger Instance
-    {
-        get
-        {
-            if (_instance == null)                 // First check (no lock)
-            {
-                lock (_lock)                       // Thread safety
-                {
-                    if (_instance == null)          // Second check (inside lock)
-                        _instance = new Logger();
-                }
-            }
-            return _instance;
-        }
-    }
-}
-```
-
-**Why `sealed`?** Prevents nested class from inheriting and creating another instance.
-**Double-checked locking:** First `null` check avoids lock overhead after initialization.
-**Use case:** Logging, configuration, connection pools, load balancers.
-
----
-
-### 2. Factory / Abstract Factory (Creational)
-**Intent:** Create objects without exposing creation logic. Let subclasses decide which class to instantiate.
-
-```csharp
-// Abstract Factory
-public interface IMobilePhone
-{
-    ISmartPhone CreateSmartPhone();
-    INormalPhone CreateNormalPhone();
-}
-
-public class Nokia : IMobilePhone
-{
-    public ISmartPhone CreateSmartPhone() => new NokiaLumia();
-    public INormalPhone CreateNormalPhone() => new Nokia1000();
-}
-
-public class Samsung : IMobilePhone
-{
-    public ISmartPhone CreateSmartPhone() => new SamsungGalaxy();
-    public INormalPhone CreateNormalPhone() => new SamsungGuru();
-}
-
-// Usage — client doesn't know concrete types
-IMobilePhone factory = new Nokia();
-ISmartPhone phone = factory.CreateSmartPhone();
-```
-
-**Solves:** Scattered `new` keywords, client coupling to concrete classes.
-**Use case:** Cross-platform UI, database providers, payment processors.
-
----
-
-### 3. Strategy (Behavioral)
-**Intent:** Define a family of algorithms, encapsulate each one, make them interchangeable.
-
-```csharp
-// This is the OCP example from SOLID
-public interface ICopyOperationStrategy
-{
-    Task CopyVersion(JObject payload);
-}
-
-public class AmendContract : ICopyOperationStrategy { /* amend logic */ }
-public class CopyContract : ICopyOperationStrategy  { /* copy logic */ }
-public class ModifyContract : ICopyOperationStrategy { /* modify logic */ }
-
-// Factory resolves the right strategy at runtime
-ICopyOperationStrategy strategy = factory.Create(operationType);
-await strategy.CopyVersion(payload);
-```
-
-**Eliminates:** Long `if/else` or `switch` chains.
-**Use case:** Payment methods, validation rules, sorting algorithms, contract operations.
-
----
-
-### 4. Observer (Behavioral)
-**Intent:** One-to-many dependency. When subject changes state, all observers are notified automatically.
-
-```csharp
-// Subject
-public class NewsPublisher
-{
-    private List<ISubscriber> _subscribers = new();
-    public void Subscribe(ISubscriber s) => _subscribers.Add(s);
-    public void Unsubscribe(ISubscriber s) => _subscribers.Remove(s);
-    public void Publish(string news)
-    {
-        foreach (var s in _subscribers) s.Notify(news);
-    }
-}
-
-// Observers
-public interface ISubscriber { void Notify(string message); }
-public class EmailSubscriber : ISubscriber
-{
-    public void Notify(string message) => Console.WriteLine($"Email: {message}");
-}
-```
-
-**Use case:** Event systems, UI updates, pub/sub messaging, real-time notifications.
-
----
-
-### 5. Chain of Responsibility (Behavioral)
-**Intent:** Pass request along a chain of handlers. Each handler decides to process or pass to the next.
-
-```csharp
-public abstract class LeaveHandler
-{
-    protected LeaveHandler _next;
-    public void SetNext(LeaveHandler next) => _next = next;
-    public abstract void Handle(LeaveRequest request);
-}
-
-public class TeamLead : LeaveHandler
-{
-    public override void Handle(LeaveRequest req)
-    {
-        if (req.Days <= 2) Console.WriteLine("Approved by Team Lead");
-        else _next?.Handle(req);
-    }
-}
-
-public class Manager : LeaveHandler { /* approves <= 5 days */ }
-public class Director : LeaveHandler { /* approves > 5 days */ }
-
-// Wire the chain
-teamLead.SetNext(manager);
-manager.SetNext(director);
-teamLead.Handle(new LeaveRequest { Days = 5 });
-```
-
-**Use case:** Approval workflows, middleware pipelines, request validation.
-
----
-
-### 6. Facade (Structural)
-**Intent:** Provide a simplified interface to a complex subsystem.
-
-```csharp
-public class OrderFacade
-{
-    private InventoryService _inventory = new();
-    private PaymentService _payment = new();
-    private ShippingService _shipping = new();
-
-    public void PlaceOrder(Order order)
-    {
-        _inventory.Reserve(order);
-        _payment.Charge(order);
-        _shipping.Ship(order);
-    }
-}
-// Client calls one method instead of coordinating 3 subsystems
-```
-
-**Use case:** API aggregation, complex library wrappers, service orchestration.
-
----
-
-### 7. Repository + Unit of Work (Structural/Enterprise)
-**Intent:** Abstract data access. Ensure multiple repositories share one DB context per transaction.
-
-```csharp
-// Generic Repository
-public interface IRepository<T>
-{
-    Task<T> GetById(int id);
-    Task Add(T entity);
-    Task Delete(T entity);
-}
-
-// Unit of Work — shared context
-public interface IUnitOfWork : IDisposable
-{
-    IRepository<Order> Orders { get; }
-    IRepository<Product> Products { get; }
-    Task<int> SaveChanges();
-}
-```
-
-**Why generic repository?** Reduces redundant CRUD code across entity types. UoW ensures atomic transactions.
-
----
-
-## Microservice Patterns
-
-### CQRS (Command Query Responsibility Segregation)
-- Separates read and write models.
-- Write model: RDBMS (normalized, consistent).
-- Read model: NoSQL/denormalized (fast queries).
-- **Sync via:** Event-driven architecture (Kafka pub/sub).
-
-### Saga Pattern
-- Maintains data consistency across microservices without distributed transactions.
-- Each step has a **compensating transaction** to rollback on failure.
-- **Orchestrator Saga:** Central coordinator (e.g., Azure Durable Function) manages the sequence.
-
-### API Gateway
-- Single entry point for all clients.
-- Handles: load balancing, auth, rate limiting, protocol translation.
-- Clients → Gateway → Microservices.
-
----
-
-## Tradeoffs & Pitfalls
-
-| Pattern | Pitfall |
-|---------|---------|
-| Singleton | Hides dependencies, makes testing hard. Prefer DI-managed singletons. |
-| Factory | Factory switch statement violates OCP. Consider dictionary-based registry. |
-| Observer | Memory leaks if observers not unsubscribed. |
-| Strategy | Overkill for simple 2-option logic. |
-| Repository | Generic repository can become a leaky abstraction over EF. |
-| CQRS | Eventual consistency is complex. Don't use for simple CRUD apps. |
-| Saga | Compensating transactions are hard to get right. Debug complexity increases. |
-
----
-
-## Interview Questions — Rapid Fire
-
-1. **What is Singleton?** One instance per app. Use `sealed` class + double-checked locking + private constructor.
-2. **Factory vs Abstract Factory?** Factory creates one type. Abstract Factory creates families of related objects.
-3. **When to use Strategy?** When you have multiple algorithms/behaviors selectable at runtime. Replaces if/else chains.
-4. **What is CQRS?** Separate read/write models. Read = optimized queries. Write = business rules + validation.
-5. **What is Saga?** Cross-service transaction pattern. Each step has compensating action for rollback.
-6. **What is Repository pattern?** Abstracts data access behind interface. Enables swapping DB implementations.
-7. **Observer vs Pub/Sub?** Observer = direct subscription. Pub/Sub = decoupled via message broker.
-8. **What is Facade?** Simplified interface to complex subsystem. One method orchestrates multiple services.
-9. **Chain of Responsibility use case?** Middleware pipelines, approval workflows, request validation chains.
-10. **DI types?** Constructor (most common), Property, Method injection.
-
----
-
-## Quick Reference
-
-```
-CREATIONAL:   Singleton (one instance) | Factory (create without knowing type) | Builder (step-by-step)
-STRUCTURAL:   Facade (simplify) | Adapter (convert interface) | Decorator (wrap + extend) | Repository (abstract data)
-BEHAVIORAL:   Strategy (swap algorithms) | Observer (notify many) | Chain (pass along) | Command (encapsulate action)
-MICRO:        CQRS (read/write split) | Saga (distributed rollback) | API Gateway (single entry)
-DI:           Constructor | Property | Method
-DI LIFETIME:  Singleton | Scoped | Transient
+CARDINALITY:    High (email, userId) → index first | Low (status, boolean) → avoid solo index
+INDEX ORDER:    High cardinality first | ESR rule (Equality → Sort → Range) for complex queries
+EXPLAIN:        totalDocsExamined ≈ nReturned = good | >> nReturned = bad selectivity
+SPARSE/PARTIAL: sparse (field exists) | partial (filter match) → smaller, targeted indexes
 ```
 # System Design & Microservices — Interview Preparation
 
@@ -3616,6 +5337,8 @@ DI LIFETIME:  Singleton | Scoped | Transient
 ## Core Concepts
 
 ### Monolithic vs Microservices
+
+> ***Start monolithic, migrate to microservices when team/scale demands it.***
 
 | | Monolithic | Microservices |
 |-|-----------|--------------|
@@ -3748,84 +5471,6 @@ Closed (normal) → failures exceed threshold → Open (reject all)
 
 ---
 
-## Microfrontends
-
-### What is a Microfrontend?
-A microfrontend extends microservice principles to the frontend — splitting a monolithic frontend into smaller, independently deployable UI applications that compose into a single user experience.
-
-```
-┌──────────────────────────────────────────────────┐
-│                  Container / Shell                │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
-│  │  Team A     │  │  Team B     │  │  Team C     │  │
-│  │  (Angular)  │  │  (React)    │  │  (Vue)      │  │
-│  │  Catalog    │  │  Cart       │  │  Checkout   │  │
-│  └────────────┘  └────────────┘  └────────────┘  │
-└──────────────────────────────────────────────────┘
-```
-
-### Implementation Approaches
-
-| Approach | How | Pros | Cons |
-|----------|-----|------|------|
-| **Module Federation** (Webpack 5) | Load remote modules at runtime | Best DX, shared dependencies, lazy loading | Webpack-only, version alignment needed |
-| **Single-SPA** | Framework-agnostic orchestrator | Polyglot (mix Angular + React), mature ecosystem | Complex setup, global state tricky |
-| **iframes** | Embed each micro-app in iframe | Complete isolation, simple | Poor UX (no shared styles/routing), performance hit |
-| **Web Components** | Each micro-app as custom element | Framework-agnostic, native browser support | Limited tooling, Shadow DOM styling challenges |
-
-### Data Sharing Between Microfrontends
-
-The core challenge is sharing state between independently deployed apps. The patterns mirror what you'd use in a non-microfrontend app, adapted for cross-boundary communication:
-
-| Pattern | How | When to Use | Non-MFE Equivalent |
-|---------|-----|-------------|---------------------|
-| **Custom Events** | `window.dispatchEvent(new CustomEvent('cart-updated', { detail }))` | Loose coupling, simple notifications | Component `@Output()` events |
-| **Shared State Store** | Shared Redux/Zustand store loaded via Module Federation | Complex shared state, multiple consumers | NgRx / Redux in monolith |
-| **URL / Route Params** | Pass data via URL query params or route segments | Navigation-driven data | Angular Router params |
-| **Props / Attributes** | Pass data as Web Component attributes or framework props | Parent → child data flow | `@Input()` bindings |
-| **Pub/Sub (Event Bus)** | Lightweight event bus (RxJS Subject on `window`) | Decoupled, event-driven communication | Service with `BehaviorSubject` |
-| **Shared API Layer** | Each MFE fetches from same backend, caches shared | Independent data fetching | Shared Angular service |
-
-**Custom Events example (framework-agnostic):**
-```javascript
-// Producer (Cart MFE) — dispatches event
-function addToCart(item) {
-  cart.push(item);
-  window.dispatchEvent(new CustomEvent('cart:updated', {
-    detail: { items: cart, total: cart.length }
-  }));
-}
-
-// Consumer (Header MFE) — listens for event
-window.addEventListener('cart:updated', (e) => {
-  document.getElementById('cart-count').textContent = e.detail.total;
-});
-```
-
-**Shared state via Module Federation:**
-```javascript
-// shared-store (remote module exposed by Shell)
-import { BehaviorSubject } from 'rxjs';
-export const user$ = new BehaviorSubject(null);
-export const setUser = (user) => user$.next(user);
-
-// Auth MFE — sets user after login
-import { setUser } from 'shell/shared-store';
-setUser({ name: 'Alice', role: 'admin' });
-
-// Dashboard MFE — reads user
-import { user$ } from 'shell/shared-store';
-user$.subscribe(user => console.log('Logged in:', user?.name));
-```
-
-### Key Design Principles
-- **Independent deployment** — each MFE has its own CI/CD pipeline
-- **Team ownership** — each team owns a vertical slice (UI + API + DB)
-- **Shared nothing** — minimize shared dependencies; share only contracts
-- **Consistent UX** — use a shared design system / component library
-
----
-
 ## Kafka Event Streaming Architecture
 
 ### High-Level Architecture
@@ -3922,7 +5567,7 @@ consumePaymentEvent(event) {
 
 ### Critical Payment Concepts
 
-**Idempotency:** Prevent duplicate transfers during retries using unique `requestId` / `paymentId`. Repeated requests are safely ignored.
+> ⚡ **Idempotency:** Prevent duplicate transfers during retries using unique `requestId` / `paymentId`. Repeated requests are safely ignored.
 
 **Retry Handling:** Retry queues, exponential backoff, DLQ.
 
@@ -3954,16 +5599,18 @@ consumePaymentEvent(event) {
 
 ## Interview Questions
 
-1. **How would you design a system for your current project?** .NET Core APIs, Angular frontend, SQL Server, Redis cache, OAuth/JWT auth, Docker/K8s, Azure App Service, Kafka for async.
-2. **How do microservices communicate?** Sync: HTTP/gRPC. Async: message brokers (Kafka/RabbitMQ).
-3. **How to handle distributed transactions?** Saga pattern with compensating transactions.
-4. **How to handle service failures?** Circuit breaker, retry with exponential backoff, fallback responses.
-5. **SQL vs NoSQL?** SQL for structured data + transactions. NoSQL for flexible schema + horizontal scale.
-6. **How to scale a database?** Read replicas, sharding, caching, query optimization.
-7. **What is eventual consistency?** Data will be consistent *eventually* but not immediately after write. Tradeoff for availability.
-8. **How to monitor microservices?** Centralized logging (ELK/App Insights), distributed tracing, health checks, alerting.
-9. **What is an API Gateway?** Single entry point handling auth, rate limiting, routing, load balancing.
-10. **CAP theorem?** Distributed system can guarantee only 2 of 3: Consistency, Availability, Partition tolerance.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **Design your current system?** | .NET APIs, Angular, SQL Server, Redis, OAuth/JWT, Docker/K8s, Kafka |
+| 2 | **Microservice communication?** | Sync: HTTP/gRPC. Async: Kafka/RabbitMQ |
+| 3 | **Distributed transactions?** | **Saga pattern** with compensating transactions |
+| 4 | **Handle service failures?** | Circuit breaker, retry + exponential backoff, fallback responses |
+| 5 | **SQL vs NoSQL?** | SQL = structured + ACID. NoSQL = flexible schema + horizontal scale |
+| 6 | **Scale a database?** | Read replicas, sharding, caching, query optimization |
+| 7 | **Eventual consistency?** | Data consistent *eventually*, not immediately. Tradeoff for availability |
+| 8 | **Monitor microservices?** | Centralized logging (ELK), distributed tracing, health checks, alerting |
+| 9 | **API Gateway?** | Single entry point: auth, rate limiting, routing, load balancing |
+| 10 | **CAP theorem?** | Pick **2 of 3**: Consistency, Availability, Partition tolerance |
 
 ---
 
@@ -4118,7 +5765,7 @@ Client → API Gateway (load balancing, auth)
 
 - **PaaS vs IaaS:** PaaS = faster development, less control. IaaS = full control, more maintenance.
 - **Consumption plan limits:** Cold starts, execution timeout (5 min default, 10 max). Use Premium plan for latency-sensitive functions.
-- **Kafka overkill:** Don't use Kafka for simple job queues. RabbitMQ is simpler and lower latency.
+> ⚠️ **Kafka overkill:** Don't use Kafka for simple job queues. RabbitMQ is simpler and lower latency.
 - **Deployment slots swap:** Always test in staging slot first. Swap = instant, no downtime.
 - **Auto-scaling costs:** Scale-out rules without scale-in limits = unexpected bills.
 - **Container vs Serverless:** Containers for persistent workloads. Serverless for event-driven, sporadic loads.
@@ -4127,16 +5774,18 @@ Client → API Gateway (load balancing, auth)
 
 ## Interview Questions — Rapid Fire
 
-1. **IaaS vs PaaS vs SaaS?** IaaS = you manage OS+apps. PaaS = you manage app+data. SaaS = you just use it.
-2. **What is Azure App Service?** PaaS for hosting web apps, REST APIs. Supports auto-scaling, deployment slots, SSL.
-3. **Scale Up vs Scale Out?** Up = bigger machine. Out = more instances.
-4. **What are deployment slots?** Separate environments under one App Service. Swap for zero-downtime releases.
-5. **What is Azure Functions?** Serverless compute. Triggers: HTTP, Timer, Blob, Queue. Pay per execution.
-6. **What are Durable Functions?** Stateful serverless. Orchestrator coordinates activity functions in sequence.
-7. **Kafka vs RabbitMQ?** Kafka = event streaming, high throughput, persistent log. RabbitMQ = task queues, lower latency, complex routing.
-8. **What is Docker?** Packages app + dependencies into a portable container.
-9. **What is Kubernetes?** Orchestrates containers at scale — deployment, scaling, networking, self-healing.
-10. **Availability zones?** Physically separate datacenters in a region. Minimum 3 per region for redundancy.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | **IaaS vs PaaS vs SaaS?** | IaaS = manage OS+apps. PaaS = manage app+data. SaaS = just use it |
+| 2 | **Azure App Service?** | PaaS for web apps/APIs. Auto-scaling, deployment slots, SSL |
+| 3 | **Scale Up vs Scale Out?** | Up = bigger machine. Out = **more instances** |
+| 4 | **Deployment slots?** | Separate environments under one App Service. Swap for **zero-downtime** releases |
+| 5 | **Azure Functions?** | Serverless compute. Triggers: HTTP, Timer, Blob, Queue. **Pay per execution** |
+| 6 | **Durable Functions?** | Stateful serverless. Orchestrator coordinates activity functions in sequence |
+| 7 | **Kafka vs RabbitMQ?** | Kafka = event streaming, high throughput. RabbitMQ = task queues, lower latency |
+| 8 | **Docker?** | Packages app + dependencies into a **portable container** |
+| 9 | **Kubernetes?** | Orchestrates containers at scale — deployment, scaling, self-healing |
+| 10 | **Availability zones?** | Physically separate datacenters. Min **3** per region for redundancy |
 
 ---
 
@@ -4155,6 +5804,14 @@ CONTAINERS: Docker (package) | K8s (orchestrate) | ACI (serverless containers)
 DEVOPS:     Jenkins (CI/CD) | Nginx (reverse proxy) | Docker + K8s
 ```
 # Coding Problems — Interview Preparation
+
+| # | Problem | Pattern | Difficulty | Time |
+|---|---------|---------|------------|------|
+| 1 | Two Sum / Pair Sum | Hash Set | Easy | O(n) |
+| 2 | Longest Palindromic Substring | Expand from center | Medium | O(n²) |
+| 3 | Merge Intervals | Sort + merge | Medium | O(n log n) |
+| 4 | Second Highest Element | Single pass | Easy | O(n) |
+| 5 | Max Consecutive Ones | Sliding window | Easy | O(n) |
 
 ---
 
@@ -4381,7 +6038,243 @@ console.log(findMaxConsecutiveOnes([]));                   // 0
 
 ---
 
-## Problem 6: LINQ One-Liners (C#)
+## Quick Reference — Common Patterns
+
+```
+TWO SUM:          Hash Set/Map → O(n)
+SLIDING WINDOW:   Two pointers, expand/shrink window
+MERGE INTERVALS:  Sort by start, greedy merge
+PALINDROME:       Expand around center → O(n²)
+BINARY SEARCH:    Sorted array, halve search space → O(log n)
+BFS/DFS:          Graph/tree traversal
+DYNAMIC PROG:     Overlapping subproblems + optimal substructure
+GREEDY:           Local optimal → global optimal
+STACK:            Matching brackets, next greater element
+HEAP:             Top K elements, merge K sorted lists
+```
+# Coding Problems (.NET / C#) — Interview Preparation
+
+| # | Problem | Pattern | Difficulty | Time |
+|---|---------|---------|------------|------|
+| 1 | Two Sum / Pair Sum | HashSet | Easy | O(n) |
+| 2 | Longest Palindromic Substring | Expand from center | Medium | O(n²) |
+| 3 | Merge Intervals | Sort + merge | Medium | O(n log n) |
+| 4 | Second Highest Element | Single pass | Easy | O(n) |
+| 5 | Max Consecutive Ones | Sliding window | Easy | O(n) |
+| 6 | LINQ One-Liners | LINQ | — | — |
+
+---
+
+## Problem 1: Two Sum / Pair Sum
+
+**Pattern:** HashSet lookup
+**Difficulty:** Easy
+
+### Code (C#)
+```csharp
+public static bool HasPairSum(int[] arr, int target)
+{
+    var seen = new HashSet<int>();
+    foreach (var num in arr)
+    {
+        if (seen.Contains(target - num)) return true;
+        seen.Add(num);
+    }
+    return false;
+}
+
+// Return indices variant
+public static int[] TwoSum(int[] nums, int target)
+{
+    var map = new Dictionary<int, int>();
+    for (int i = 0; i < nums.Length; i++)
+    {
+        int complement = target - nums[i];
+        if (map.ContainsKey(complement))
+            return new[] { map[complement], i };
+        map[nums[i]] = i;
+    }
+    return Array.Empty<int>();
+}
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| Brute force (nested loops) | O(n²) | O(1) |
+| **Optimized (HashSet)** | **O(n)** | **O(n)** |
+
+---
+
+## Problem 2: Longest Palindromic Substring
+
+**Pattern:** Expand Around Center
+**Difficulty:** Medium
+
+### Code (C#)
+```csharp
+public static string LongestPalindrome(string s)
+{
+    if (string.IsNullOrEmpty(s)) return "";
+    string longest = "";
+
+    void Expand(int left, int right)
+    {
+        while (left >= 0 && right < s.Length && s[left] == s[right])
+        {
+            string sub = s.Substring(left, right - left + 1);
+            if (sub.Length > longest.Length) longest = sub;
+            left--;
+            right++;
+        }
+    }
+
+    for (int i = 0; i < s.Length; i++)
+    {
+        Expand(i, i);       // odd-length palindrome
+        Expand(i, i + 1);   // even-length palindrome
+    }
+    return longest;
+}
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| **Expand around center** | **O(n²)** | **O(1)** |
+
+---
+
+## Problem 3: Merge Intervals
+
+**Pattern:** Sort + Greedy Merge
+**Difficulty:** Medium
+
+### Code (C#)
+```csharp
+public static int[][] MergeIntervals(int[][] intervals)
+{
+    Array.Sort(intervals, (a, b) => a[0].CompareTo(b[0]));
+    var result = new List<int[]> { intervals[0] };
+
+    for (int i = 1; i < intervals.Length; i++)
+    {
+        var prev = result[^1]; // last element
+        var curr = intervals[i];
+
+        if (curr[0] <= prev[1])
+        {
+            prev[1] = Math.Max(prev[1], curr[1]);
+        }
+        else
+        {
+            result.Add(curr);
+        }
+    }
+    return result.ToArray();
+}
+
+// Input:  [[1,3],[2,6],[8,10],[15,18]]
+// Output: [[1,6],[8,10],[15,18]]
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| **Sort + merge** | **O(n log n)** | **O(n)** |
+
+---
+
+## Problem 4: Second Highest Element
+
+**Pattern:** Single pass tracking
+**Difficulty:** Easy
+
+### Code (C#)
+```csharp
+public static int? SecondHighest(int[] arr)
+{
+    if (arr.Length < 2) return null;
+
+    int first = int.MinValue;
+    int second = int.MinValue;
+
+    foreach (var num in arr)
+    {
+        if (num > first)
+        {
+            second = first;
+            first = num;
+        }
+        else if (num > second && num != first)
+        {
+            second = num;
+        }
+    }
+
+    return second == int.MinValue ? null : second;
+}
+
+// LINQ alternative (less optimal but concise)
+public static int? SecondHighestLinq(int[] arr)
+{
+    var distinct = arr.Distinct().OrderByDescending(x => x).ToList();
+    return distinct.Count >= 2 ? distinct[1] : null;
+}
+```
+
+### Complexity
+| Approach | Time | Space |
+|----------|------|-------|
+| LINQ Distinct + OrderBy | O(n log n) | O(n) |
+| **Single pass** | **O(n)** | **O(1)** |
+
+---
+
+## Problem 5: Max Consecutive Ones
+
+**Pattern:** Counter
+**Difficulty:** Easy
+
+### Code (C#)
+```csharp
+public static int FindMaxConsecutiveOnes(int[] nums)
+{
+    int count = 0;
+    int max = 0;
+
+    foreach (var num in nums)
+    {
+        if (num == 1)
+        {
+            count++;
+            max = Math.Max(count, max);
+        }
+        else
+        {
+            count = 0;
+        }
+    }
+    return max;
+}
+
+// LINQ alternative
+public static int FindMaxConsecutiveOnesLinq(int[] nums)
+{
+    return string.Join(",", nums)
+        .Split('0')
+        .Max(s => s.Split(',').Count(x => x == "1"));
+}
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| **Single pass** | **O(n)** | **O(1)** |
+
+---
+
+## Problem 6: LINQ One-Liners
 
 **Pattern:** GroupBy + Aggregation
 
@@ -4424,16 +6317,14 @@ var duplicates = nums.GroupBy(x => x)
 ## Quick Reference — Common Patterns
 
 ```
-TWO SUM:          Hash Set/Map → O(n)
+TWO SUM:          HashSet/Dictionary → O(n)
 SLIDING WINDOW:   Two pointers, expand/shrink window
-MERGE INTERVALS:  Sort by start, greedy merge
+MERGE INTERVALS:  Array.Sort + greedy merge
 PALINDROME:       Expand around center → O(n²)
 BINARY SEARCH:    Sorted array, halve search space → O(log n)
-BFS/DFS:          Graph/tree traversal
-DYNAMIC PROG:     Overlapping subproblems + optimal substructure
-GREEDY:           Local optimal → global optimal
-STACK:            Matching brackets, next greater element
-HEAP:             Top K elements, merge K sorted lists
+LINQ:             GroupBy | Where | Select | OrderBy | Distinct | SelectMany
+COLLECTIONS:      HashSet<T> | Dictionary<K,V> | List<T> | SortedSet<T>
+STRING:           Substring | Split | Join | ToCharArray | StringBuilder
 ```
 # Original File: Professional-Resume-Writing-Guidelines.txt
 
