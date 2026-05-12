@@ -7,6 +7,7 @@
 | 3 | Merge Intervals | Sort + merge | Medium | O(n log n) |
 | 4 | Second Highest Element | Single pass | Easy | O(n) |
 | 5 | Max Consecutive Ones | Sliding window | Easy | O(n) |
+| 6 | Matching Brackets | Stack | Easy | O(n) |
 
 ---
 
@@ -230,6 +231,57 @@ console.log(findMaxConsecutiveOnes([]));                   // 0
 ### Variations
 - **Max Consecutive Ones II** (LeetCode #487): You may flip at most one 0 → sliding window with at most one 0 inside
 - **Max Consecutive Ones III** (LeetCode #1004): You may flip at most K zeros → sliding window tracking zero count
+
+---
+
+## Problem 6: Matching Brackets (Valid Parentheses)
+
+**Pattern:** Stack
+**Difficulty:** Easy
+**LeetCode:** #20
+
+### Approach
+Use a stack. For every opening bracket, push the corresponding closing bracket. For every closing bracket, check if it matches the top of the stack. If the stack is empty at the end, the string is valid.
+
+### Code (JavaScript)
+```javascript
+var isValid = function(s) {
+  const stack = [];
+  const map = { '(': ')', '{': '}', '[': ']' };
+
+  for (const char of s) {
+    if (map[char]) {
+      stack.push(map[char]);
+    } else {
+      if (stack.pop() !== char) return false;
+    }
+  }
+  return stack.length === 0;
+};
+
+console.log(isValid("()"));       // true
+console.log(isValid("()[]{}"));   // true
+console.log(isValid("(]"));       // false
+console.log(isValid("([)]"));     // false
+console.log(isValid("{[]}"));     // true
+console.log(isValid(""));         // true
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| **Stack** | **O(n)** | **O(n)** |
+
+### Edge Cases
+- Empty string → valid (return `true`)
+- Odd-length string → always invalid (quick early return)
+- Only opening brackets → invalid (stack not empty)
+- Only closing brackets → invalid (stack underflow)
+
+### Variations
+- **Minimum Remove to Make Valid Parentheses** (LeetCode #1249): Track indices of invalid brackets
+- **Longest Valid Parentheses** (LeetCode #32): Stack or DP, O(n)
+- **Generate Parentheses** (LeetCode #22): Backtracking with open/close counts
 
 ---
 

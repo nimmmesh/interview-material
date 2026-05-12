@@ -8,6 +8,7 @@
 | 4 | Second Highest Element | Single pass | Easy | O(n) |
 | 5 | Max Consecutive Ones | Sliding window | Easy | O(n) |
 | 6 | LINQ One-Liners | LINQ | — | — |
+| 7 | Matching Brackets | Stack | Easy | O(n) |
 
 ---
 
@@ -260,6 +261,68 @@ var duplicates = nums.GroupBy(x => x)
 
 ---
 
+## Problem 7: Matching Brackets (Valid Parentheses)
+
+**Pattern:** Stack
+**Difficulty:** Easy
+**LeetCode:** #20
+
+### Approach
+Use a stack. For every opening bracket, push the corresponding closing bracket. For every closing bracket, check if it matches the top of the stack. If the stack is empty at the end, the string is valid.
+
+### Code (C#)
+```csharp
+public static bool IsValid(string s)
+{
+    var stack = new Stack<char>();
+    var map = new Dictionary<char, char>
+    {
+        { '(', ')' },
+        { '{', '}' },
+        { '[', ']' }
+    };
+
+    foreach (var c in s)
+    {
+        if (map.ContainsKey(c))
+        {
+            stack.Push(map[c]);
+        }
+        else
+        {
+            if (stack.Count == 0 || stack.Pop() != c) return false;
+        }
+    }
+    return stack.Count == 0;
+}
+
+// Tests
+Console.WriteLine(IsValid("()"));       // True
+Console.WriteLine(IsValid("()[]{}"));   // True
+Console.WriteLine(IsValid("(]"));       // False
+Console.WriteLine(IsValid("([)]"));     // False
+Console.WriteLine(IsValid("{[]}"));     // True
+Console.WriteLine(IsValid(""));         // True
+```
+
+### Complexity
+| | Time | Space |
+|-|------|-------|
+| **Stack** | **O(n)** | **O(n)** |
+
+### Edge Cases
+- Empty string → valid (return `true`)
+- Odd-length string → always invalid (quick early return)
+- Only opening brackets → invalid (stack not empty)
+- Only closing brackets → invalid (`stack.Count == 0` check)
+
+### Variations
+- **Minimum Remove to Make Valid Parentheses** (LeetCode #1249): Track indices of invalid brackets
+- **Longest Valid Parentheses** (LeetCode #32): Stack or DP, O(n)
+- **Generate Parentheses** (LeetCode #22): Backtracking with open/close counts
+
+---
+
 ## Quick Reference — Common Patterns
 
 ```
@@ -268,6 +331,7 @@ SLIDING WINDOW:   Two pointers, expand/shrink window
 MERGE INTERVALS:  Array.Sort + greedy merge
 PALINDROME:       Expand around center → O(n²)
 BINARY SEARCH:    Sorted array, halve search space → O(log n)
+STACK:            Matching brackets, next greater element
 LINQ:             GroupBy | Where | Select | OrderBy | Distinct | SelectMany
 COLLECTIONS:      HashSet<T> | Dictionary<K,V> | List<T> | SortedSet<T>
 STRING:           Substring | Split | Join | ToCharArray | StringBuilder
