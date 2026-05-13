@@ -145,6 +145,45 @@ CREATE INDEX idx_active_employees ON Employee(Id) WHERE Status = 'Active';
 **Senior-level answer:**
 "`Id` is the obvious candidate — high cardinality, typically already indexed as the primary key. For `Status`, it depends on data distribution and query frequency. A standalone index on a low-cardinality column may not be efficient since the optimizer may prefer a table scan. However, if the app frequently filters by status or the table is very large, a composite or filtered index could still help. I'd decide based on actual query patterns and execution plans rather than blindly indexing every searchable column."
 
+### Types of Indexes
+
+| Index Type | Description | Use Case |
+|------------|-------------|----------|
+| **Clustered** | Sorts and stores data rows in the table based on key values. **One per table.** | Primary key lookups, range queries |
+| **Non-Clustered** | Separate structure with pointers to data rows. **Multiple per table.** | Frequent WHERE/JOIN columns |
+| **Unique** | Ensures no duplicate values in the indexed column(s) | Email, username, SSN |
+| **Composite** | Index on **multiple columns** | Queries filtering on 2+ columns |
+| **Covering** | Includes all columns needed by a query — no table lookup | High-performance read queries |
+| **Filtered** | Index with a WHERE clause — indexes only a subset of rows | Partial data (e.g., active records only) |
+| **Full-Text** | Optimized for searching text content within large text columns | Search in articles, descriptions |
+| **Columnstore** | Stores data column-wise instead of row-wise | Analytics, data warehousing, aggregations |
+
+```sql
+-- Unique Index
+CREATE UNIQUE INDEX idx_email ON Users(Email);
+
+-- Composite Index
+CREATE INDEX idx_tenant_status ON Orders(TenantId, Status);
+
+-- Covering Index (INCLUDE adds non-key columns)
+CREATE INDEX idx_orders_cover ON Orders(CustomerId)
+  INCLUDE (OrderDate, TotalAmount);
+
+-- Filtered Index (PostgreSQL / SQL Server)
+CREATE INDEX idx_active_users ON Users(Id)
+  WHERE IsActive = 1;
+
+-- Full-Text Index (SQL Server)
+CREATE FULLTEXT INDEX ON Articles(Content)
+  KEY INDEX PK_Articles;
+
+-- Columnstore Index
+CREATE NONCLUSTERED COLUMNSTORE INDEX idx_cs_sales
+  ON Sales(ProductId, Quantity, Amount);
+```
+
+> 💡 **Rule of thumb:** More indexes = faster reads, slower writes. Only index columns you actually query on.
+
 ### Stored Procedure vs Function
 
 | | Stored Procedure | Function |

@@ -589,6 +589,80 @@ Step 10:  └──► If refresh token also expired → Logout, redirect to /lo
 
 ---
 
+## Encryption vs Encoding vs Hashing
+
+| | Encoding | Encryption | Hashing |
+|-|----------|------------|----------|
+| **Purpose** | Data format conversion | Confidentiality | Data integrity / verification |
+| **Reversible?** | Yes (no key needed) | Yes (with key) | **No (one-way)** |
+| **Key required?** | No | Yes | No |
+| **Output** | Transformed data | Ciphertext | Fixed-length digest |
+| **Examples** | Base64, URL encoding, UTF-8 | AES, RSA, TLS | SHA-256, bcrypt, HMAC |
+| **Use case** | Data transport, URL safety | Protecting secrets, HTTPS | Password storage, checksums |
+
+### Encoding
+- **Transforms** data into another format for safe transport — **not for security**.
+- Anyone can decode without a key.
+```csharp
+// Base64 encoding
+string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes("hello")); // "aGVsbG8="
+string decoded = Encoding.UTF8.GetString(Convert.FromBase64String(encoded)); // "hello"
+```
+
+### Encryption
+- **Scrambles** data using a key — only someone with the key can decrypt.
+- **Symmetric** (AES): same key for encrypt/decrypt.
+- **Asymmetric** (RSA): public key encrypts, private key decrypts.
+```csharp
+using System.Security.Cryptography;
+
+using var aes = Aes.Create();
+aes.GenerateKey();
+aes.GenerateIV();
+
+// Encrypt
+using var encryptor = aes.CreateEncryptor();
+byte[] encrypted = encryptor.TransformFinalBlock(
+    Encoding.UTF8.GetBytes("secret"), 0, "secret".Length);
+
+// Decrypt
+using var decryptor = aes.CreateDecryptor();
+byte[] decrypted = decryptor.TransformFinalBlock(encrypted, 0, encrypted.Length);
+string result = Encoding.UTF8.GetString(decrypted); // "secret"
+```
+
+### Hashing
+- **One-way** transformation — cannot reverse the hash back to original data.
+- Same input always produces the same output.
+- Used for **password storage**, file integrity, digital signatures.
+```csharp
+using BCrypt.Net;
+
+// Hashing a password (with salt)
+string hash = BCrypt.Net.BCrypt.HashPassword("myPassword");
+
+// Verifying
+bool match = BCrypt.Net.BCrypt.Verify("myPassword", hash); // true
+
+// SHA-256 for checksums (NOT for passwords)
+using var sha256 = SHA256.Create();
+byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes("data"));
+string hashHex = Convert.ToHexString(hashBytes);
+```
+
+> ⚠️ **Never use encoding or encryption for password storage.** Always use a slow hashing algorithm like **BCrypt** or **Argon2** with a salt.
+
+### Quick Decision Guide
+| Need | Use |
+|------|-----|
+| Store passwords | **Hashing** (BCrypt, Argon2) |
+| Transmit data safely over wire | **Encoding** (Base64) + **Encryption** (TLS/HTTPS) |
+| Protect data at rest | **Encryption** (AES-256) |
+| Verify file integrity | **Hashing** (SHA-256 checksum) |
+| Obfuscate data in URLs | **Encoding** (URL encoding) |
+
+---
+
 ## Quick Reference
 
 ```

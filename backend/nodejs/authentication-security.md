@@ -391,6 +391,70 @@ app.use(mongoSanitize()); // Strips $ and . from req.body/query/params
 
 ---
 
+## Encryption vs Encoding vs Hashing
+
+| | Encoding | Encryption | Hashing |
+|-|----------|------------|----------|
+| **Purpose** | Data format conversion | Confidentiality | Data integrity / verification |
+| **Reversible?** | Yes (no key needed) | Yes (with key) | **No (one-way)** |
+| **Key required?** | No | Yes | No |
+| **Output** | Transformed data | Ciphertext | Fixed-length digest |
+| **Examples** | Base64, URL encoding, UTF-8 | AES, RSA, TLS | SHA-256, bcrypt, MD5 |
+| **Use case** | Data transport, URL safety | Protecting secrets, HTTPS | Password storage, checksums |
+
+### Encoding
+- **Transforms** data into another format for safe transport — **not for security**.
+- Anyone can decode without a key.
+```javascript
+// Base64 encoding
+const encoded = Buffer.from('hello').toString('base64');  // 'aGVsbG8='
+const decoded = Buffer.from(encoded, 'base64').toString(); // 'hello'
+```
+
+### Encryption
+- **Scrambles** data using a key — only someone with the key can decrypt.
+- **Symmetric** (AES): same key for encrypt/decrypt.
+- **Asymmetric** (RSA): public key encrypts, private key decrypts.
+```javascript
+const crypto = require('crypto');
+const algorithm = 'aes-256-cbc';
+const key = crypto.randomBytes(32);
+const iv = crypto.randomBytes(16);
+
+const cipher = crypto.createCipheriv(algorithm, key, iv);
+let encrypted = cipher.update('secret', 'utf8', 'hex') + cipher.final('hex');
+
+const decipher = crypto.createDecipheriv(algorithm, key, iv);
+let decrypted = decipher.update(encrypted, 'hex', 'utf8') + decipher.final('utf8');
+```
+
+### Hashing
+- **One-way** transformation — cannot reverse the hash back to original data.
+- Same input always produces the same output.
+- Used for **password storage**, file integrity, digital signatures.
+```javascript
+const bcrypt = require('bcrypt');
+
+// Hashing a password (with salt)
+const hash = await bcrypt.hash('myPassword', 10);
+
+// Verifying
+const match = await bcrypt.compare('myPassword', hash); // true
+```
+
+> ⚠️ **Never use encoding or encryption for password storage.** Always use a slow hashing algorithm like **bcrypt** or **argon2** with a salt.
+
+### Quick Decision Guide
+| Need | Use |
+|------|-----|
+| Store passwords | **Hashing** (bcrypt, argon2) |
+| Transmit data safely over wire | **Encoding** (Base64) + **Encryption** (TLS/HTTPS) |
+| Protect data at rest | **Encryption** (AES-256) |
+| Verify file integrity | **Hashing** (SHA-256 checksum) |
+| Obfuscate data in URLs | **Encoding** (URL encoding) |
+
+---
+
 ## Quick Reference
 
 ```

@@ -195,6 +195,60 @@ var conn = builder.Configuration["DbConnectionString"];
 
 ---
 
+## Docker Container vs Kubernetes Pod
+
+| | Docker Container | Kubernetes Pod |
+|-|-----------------|----------------|
+| **What** | Single running instance of an image | Smallest deployable unit in K8s (one or more containers) |
+| **Scope** | One process/application | Group of tightly coupled containers |
+| **Networking** | Own network namespace (bridge by default) | All containers in a pod **share the same IP and port space** |
+| **Storage** | Volumes mounted per container | Shared volumes across containers in the pod |
+| **Lifecycle** | Managed by Docker daemon | Managed by Kubernetes control plane |
+| **Scaling** | Manual (`docker run`) or Compose replicas | Declarative via Deployments, ReplicaSets, HPA |
+| **Self-healing** | No (stays stopped if crashed) | Yes — K8s restarts failed pods automatically |
+| **Service discovery** | Manual linking or Docker networks | Built-in DNS and Service abstraction |
+
+### Key Concepts
+
+```
+DOCKER CONTAINER:
+  - Runs a single image (one process per container best practice)
+  - Created from a Dockerfile → Image → Container
+  - docker run, docker-compose up
+
+KUBERNETES POD:
+  - Wraps one or more containers that share network + storage
+  - Sidecar pattern: main app container + helper containers (logging, proxy)
+  - Pods are ephemeral — never restarted, always replaced
+  - Managed by higher-level objects: Deployment, StatefulSet, DaemonSet
+```
+
+### Sidecar Pattern Example
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-with-sidecar
+spec:
+  containers:
+    - name: app            # Main application
+      image: my-app:latest
+      ports:
+        - containerPort: 8080
+    - name: log-agent      # Sidecar for log forwarding
+      image: fluentd:latest
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/app
+  volumes:
+    - name: shared-logs
+      emptyDir: {}
+```
+
+> 💡 **Think of it this way:** A Docker container is like a single apartment. A Kubernetes pod is like a suite — multiple rooms (containers) sharing the same address, hallway, and utilities.
+
+---
+
 ## Interview Questions — Rapid Fire
 
 | # | Question | Answer |

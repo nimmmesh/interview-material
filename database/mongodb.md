@@ -257,6 +257,66 @@ ORDER BY totalRevenue DESC;
 
 ---
 
+### Types of Indexes
+
+| Index Type | Description | Use Case |
+|------------|-------------|----------|
+| **Single Field** | Index on one field | Simple equality/range queries |
+| **Compound** | Index on **multiple fields** | Queries filtering/sorting on 2+ fields |
+| **Multikey** | Automatically created when indexing an **array field** | Tags, categories, roles |
+| **Text** | Supports full-text search on string content | Search in titles, descriptions |
+| **Hashed** | Hashes the field value — supports **equality only** (no range) | Shard key for hash-based sharding |
+| **Geospatial** (`2dsphere`) | For location-based queries | Find nearby stores, geo queries |
+| **TTL** (Time-To-Live) | Automatically deletes documents after a set time | Session data, logs, temp records |
+| **Unique** | Ensures no duplicate values | Email, username |
+| **Partial** | Indexes only documents matching a filter expression | Index only active/recent records |
+| **Wildcard** | Indexes all fields or fields matching a pattern | Dynamic/flexible schemas |
+
+```javascript
+// Single Field
+db.users.createIndex({ email: 1 });
+
+// Compound Index
+db.orders.createIndex({ customerId: 1, status: 1, createdAt: -1 });
+
+// Unique Index
+db.users.createIndex({ email: 1 }, { unique: true });
+
+// Text Index
+db.articles.createIndex({ title: "text", content: "text" });
+db.articles.find({ $text: { $search: "mongodb indexes" } });
+
+// TTL Index — auto-delete after 1 hour
+db.sessions.createIndex({ createdAt: 1 }, { expireAfterSeconds: 3600 });
+
+// Partial Index — only index active users
+db.users.createIndex(
+  { email: 1 },
+  { partialFilterExpression: { isActive: true } }
+);
+
+// Hashed Index (for sharding)
+db.users.createIndex({ userId: "hashed" });
+
+// Geospatial Index
+db.stores.createIndex({ location: "2dsphere" });
+db.stores.find({
+  location: {
+    $near: {
+      $geometry: { type: "Point", coordinates: [-73.97, 40.77] },
+      $maxDistance: 5000
+    }
+  }
+});
+
+// Wildcard Index
+db.products.createIndex({ "attributes.$**": 1 });
+```
+
+> 💡 **Rule of thumb:** More indexes = faster reads, slower writes. Use `explain()` to verify your indexes are actually being used.
+
+---
+
 ### Query Optimization
 
 MongoDB query optimization focuses on reducing collection scans, improving query selectivity, optimizing aggregation pipelines, designing proper indexes, and minimizing memory-intensive operations.
