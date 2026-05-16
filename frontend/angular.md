@@ -558,6 +558,73 @@ Angular 17 introduced `@defer` blocks — lazy load **individual components** (n
 
 ---
 
+## AOT vs JIT Compilation — Deep Dive
+
+> ***AOT = compile templates at build time. JIT = compile templates at runtime in the browser.***
+
+### Compilation Workflow
+
+```
+                    JIT (Just-In-Time)                    AOT (Ahead-Of-Time)
+                    ──────────────────                    ───────────────────
+Source Code     →   Bundled with compiler   →   Source Code    →   Compiled at build
+                    shipped to browser                              only JS shipped
+                         │                                              │
+Browser loads   →   Angular compiler runs   →   Browser loads   →   Runs immediately
+                    in browser (slower)                              (no compiler needed)
+                         │                                              │
+Templates       →   Compiled at runtime     →   Templates       →   Already compiled
+                    (errors found late)                              (errors found early)
+```
+
+### Comparison
+
+| | JIT | AOT |
+|-|-----|-----|
+| **When** | Templates compiled in browser at runtime | Templates compiled during `ng build` |
+| **Bundle size** | Larger (includes Angular compiler ~1MB) | Smaller (compiler not shipped) |
+| **Startup speed** | Slower (compile + render) | Faster (just render) |
+| **Error detection** | Runtime (user sees template errors) | Build time (caught by developer) |
+| **Security** | Templates available as strings (injectable) | Templates pre-compiled to JS (not injectable) |
+| **Used for** | Development (`ng serve`) | Production (`ng build --configuration production`) |
+| **Tree shaking** | Limited (compiler can't analyze well) | Better (compiler marks unused code) |
+| **Build time** | Faster build | Slower build (compilation happens here) |
+
+### Why AOT for Production?
+
+```bash
+# Development — JIT (fast rebuild, hot module replacement)
+ng serve
+
+# Production — AOT (enabled by default since Angular 9)
+ng build --configuration production
+# Includes: AOT compilation + tree shaking + minification + dead code elimination
+```
+
+**Security benefit:**
+```html
+<!-- JIT: template is a string, vulnerable to template injection -->
+<!-- An attacker could inject: {{ constructor.constructor('return this')() }} -->
+
+<!-- AOT: templates are pre-compiled to JavaScript -->
+<!-- No template compiler in browser = no template injection possible -->
+```
+
+**Performance numbers (typical):**
+- First Contentful Paint: AOT ~40-60% faster than JIT
+- Bundle size: AOT removes ~1MB (Angular compiler) from bundle
+- Parse time: Less JavaScript to parse = faster on mobile devices
+
+**Senior-Level Answer:** "AOT compiles Angular templates into optimized JavaScript at build time. This gives us three benefits: faster startup because the browser doesn't need the Angular compiler, smaller bundles because we don't ship the compiler (~1MB savings), and better security because templates aren't available as injectable strings. We use JIT only during development for faster rebuild cycles. Since Angular 9, AOT is the default for production builds."
+
+**Common Cross Questions:**
+- *Can you use JIT in production?* Technically yes, but never recommended — larger bundle, slower startup, security risk.
+- *Does AOT catch all template errors?* It catches structural errors (wrong property bindings, missing components) but not runtime data errors.
+- *What is Ivy?* Angular's modern compilation engine (default since Angular 9) that improved both AOT and JIT compilation. Enables features like tree-shakable components and better lazy loading.
+- *How does AOT affect lazy loading?* Each lazy-loaded module is AOT-compiled into its own chunk — loaded and ready to render instantly without compilation.
+
+---
+
 ## Interview Questions — Rapid Fire
 
 | # | Question | Answer |
